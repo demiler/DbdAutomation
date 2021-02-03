@@ -1,5 +1,6 @@
 #include <Windows.h>
 #include <stdio.h>
+#include "utils.h"
 #include "logs.h"
 #include "handlers.h"
 
@@ -84,5 +85,18 @@ setHooks(void) {
   */
 
   printf("Hooks loaded successfully\n");
+}
+
+int 
+random(int from, int to) {
+  return rand() % (to - from + 1) + from;
+}
+
+time_t
+millis(void) {
+  struct timeval tv;
+  gettimeofday(&tv, NULL);
+  return tv.tv_sec * 1000 + tv.tv_usec / 1000;
+
 }
 

@@ -21,11 +21,11 @@ kbHookCallback(int nCode, WPARAM action, LPARAM lParam) {
 
   if (showKeys) {
     switch (action) {
-      case WM_KEYDOWN:    printf("%15s ", "WM_KEYDOWN"); break;
-      case WM_KEYUP:      printf("%15s ", "WM_KEYUP"); break;
-      case WM_SYSKEYDOWN: printf("%15s ", "WM_SYSKEYDOWN"); break;
-      case WM_SYSKEYUP:   printf("%15s ", "WM_SYSKEYUP"); break;
-      default:            printf("%15s ", "UNKNOWN");
+      case WM_KEYDOWN:    printf(" WM_KEYDOWN    "); break;
+      case WM_KEYUP:      printf(" WM_KEYUP      "); break;
+      case WM_SYSKEYDOWN: printf(" WM_SYSKEYDOWN "); break;
+      case WM_SYSKEYUP:   printf(" WM_SYSKEYUP   "); break;
+      default:            printf(" UNKNOWN       ");
     }
     printf("%5d | %5d\n", kbData.vkCode, kbData.scanCode);
   }

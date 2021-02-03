@@ -5,10 +5,14 @@
 #include "utils.h"
 #include "logs.h"
 #include "sounds.h"
-#include <math.h>
+#include <time.h>
+
+#include "automate.c"
 
 void
 start() {
+  //HANDLE mlHandler = CreateThread(NULL, 0, messageLoop, NULL, 0, NULL);
+
   //start message loop
 	MSG msg;
 	GetMessage(&msg, NULL, 0, 0);
@@ -20,14 +24,8 @@ main(void) {
   //setHooks();
   //start();
 
-  makeSound(S_SCRIPT_ENABLED);
-  Sleep(1000);
-  makeSound(S_SCRIPT_ABOUT_TO_END);
-  Sleep(1000);
-  makeSound(S_SCRIPT_DISABLED);
-  Sleep(1000);
+  Sleep(2000);
+  struggle();
 
-  //HANDLE mlHandler = CreateThread(NULL, 0, messageLoop, NULL, 0, NULL);
- 
   return 0;
 }
