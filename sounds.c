@@ -54,10 +54,13 @@ void makeSound(sound_t sound) {
       _asyncInactiveBeep();
       break;
     case S_SCRIPT_ENABLED:
+      PlaySound(TEXT("ScriptEnabled.wav"), NULL, SND_FILENAME | SND_ASYNC);
       break;
     case S_SCRIPT_ABOUT_TO_END:
+      PlaySound(TEXT("ScriptWarning.wav"), NULL, SND_FILENAME | SND_ASYNC);
       break;
-    case S_SCRIPT_DISAVLED:
+    case S_SCRIPT_DISABLED:
+      PlaySound(TEXT("ScriptDisabled.wav"), NULL, SND_FILENAME | SND_ASYNC);
       break;
   }
 }

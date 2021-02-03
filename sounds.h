@@ -9,7 +9,7 @@ typedef enum sound_t {
   S_PROGRAM_INACTIVE,
   S_SCRIPT_ENABLED,
   S_SCRIPT_ABOUT_TO_END,
-  S_SCRIPT_DISAVLED,
+  S_SCRIPT_DISABLED,
 } sound_t;
 
 struct BeepData {
