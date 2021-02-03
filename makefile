@@ -16,15 +16,20 @@ build/handlers.o: handlers.c
 build/emulator.o: emulator.c
 	 gcc -c -o $@ $<
 
+build/sounds.o: sounds.c
+	 gcc -c -o $@ $<
+
 build: main.c\
 	build/logs.o\
 	build/handlers.o\
 	build/emulator.o\
+	build/sounds.o\
 	build/utils.o	
 		gcc -o run\
 			build/logs.o\
 			build/handlers.o\
 			build/emulator.o\
+			build/sounds.o\
 			build/utils.o\
 			main.c\
 			-lwinmm

@@ -4,7 +4,8 @@
 #include "handlers.h"
 #include "utils.h"
 #include "logs.h"
-#include "emulator.h"
+#include "sounds.h"
+#include <math.h>
 
 void
 start() {
@@ -18,6 +19,11 @@ main(void) {
   loadConsole();
   //setHooks();
   //start();
+
+  makeSound(S_PROGRAM_START);
+  Sleep(1000);
+  makeSound(S_PROGRAM_CLOSE);
+  Sleep(1000);
 
   //HANDLE mlHandler = CreateThread(NULL, 0, messageLoop, NULL, 0, NULL);
  
