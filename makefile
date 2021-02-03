@@ -32,7 +32,7 @@ build: main.c\
 			build/sounds.o\
 			build/utils.o\
 			main.c\
-			-lwinmm
+			-lwinmm -lshlwapi
 
 clear:
 	rm hooks.o

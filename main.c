@@ -20,9 +20,11 @@ main(void) {
   //setHooks();
   //start();
 
-  makeSound(S_PROGRAM_START);
+  makeSound(S_SCRIPT_ENABLED);
   Sleep(1000);
-  makeSound(S_PROGRAM_CLOSE);
+  makeSound(S_SCRIPT_ABOUT_TO_END);
+  Sleep(1000);
+  makeSound(S_SCRIPT_DISABLED);
   Sleep(1000);
 
   //HANDLE mlHandler = CreateThread(NULL, 0, messageLoop, NULL, 0, NULL);
