@@ -27,14 +27,17 @@ void resetTime(void) {
   startTime = millis();
   runTime = 0;
   ssemEv = SSE_RESET;
+  ReleaseSemaphore(stopSem, 1, NULL);
 }
 
 void stop(void) {
   ssemEv = SSE_STOP;
+  ReleaseSemaphore(stopSem, 1, NULL);
 }
 
 void action(void) {
   ssemEv = SSE_ACTION;
+  ReleaseSemaphore(stopSem, 1, NULL);
 }
 
 //X 1) printf, beep
@@ -49,8 +52,11 @@ void wiggle(void) {
 
   const time_t wrngTime = wiggleStopTime - warningDelayTime;
   bool warned = false;
-  resetTime();
+  active = true;
+
   ssemEv = SSE_NOTHING;
+  startTime = millis();
+  runTime = 0;
 
   while (runTime < wiggleStopTime) {
     pressKey(KBK_A, 30);
@@ -75,6 +81,7 @@ void wiggle(void) {
     }
   }
 
+  active = false;
   printf("Wiggle script disabled\n");
   makeSound(S_SCRIPT_DISABLED);
 }
@@ -91,6 +98,11 @@ void struggle(void) {
 
   const time_t wrngTime = struggleStopTime - warningDelayTime;
   bool warned = false;
+  active = true;
+
+  ssemEv = SSE_NOTHING;
+  startTime = millis();
+  runTime = 0;
 
   while (runTime < struggleStopTime) {
     pressKey(KBK_SPACE, 30);
@@ -114,6 +126,7 @@ void struggle(void) {
     }
   }
 
+  active = false;
   printf("Struggle script disabled\n");
   makeSound(S_SCRIPT_DISABLED);
 }
@@ -134,11 +147,15 @@ void becomeToxic(void) {
   const time_t tBagTime = 60;
   const time_t clickTime = 30;
   const bool tBag = !msKeys[MSK_LEFT];
+  active = true;
 
   if (tBag)
     pressKey(KBK_CTRL, 125);
 
-  time_t runTime = 0, startTime = millis();
+  ssemEv = SSE_NOTHING;
+  startTime = millis();
+  runTime = 0;
+
   while (runTime < stopTime || msKeys[MSK_LEFT]) {
     if (tBag) {
       pushKey(KBK_CTRL);
@@ -164,6 +181,7 @@ void becomeToxic(void) {
     runTime = millis() - startTime;
   }
 
+  active = false;
   printf("Become toxic script disable\n");
 }
 
@@ -185,8 +203,12 @@ void autoGen(void) {
   makeSound(S_SCRIPT_ENABLED);
 
   const time_t wrngTime = autoGenStopTime - warningDelayTime;
-  resetTime();
+  bool warned = false;
+  active = true;
+
   ssemEv = SSE_NOTHING;
+  startTime = millis();
+  runTime = 0;
 
   pushMouseBtn(MSK_LEFT);
   while (runTime < autoGenStopTime) {
@@ -215,6 +237,7 @@ void autoGen(void) {
   }
   releaseMouseBtn(MSK_LEFT);
 
+  active = false;
   printf("AutoGen script is disabled\n");
   makeSound(S_SCRIPT_DISABLED);
 }

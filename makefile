@@ -39,7 +39,8 @@ build: main.c\
 			main.c\
 			-lwinmm -lshlwapi
 
+rebuild: clear build
+
 clear:
-	rm hooks.o
-	rm hooks.dll
-	rm run.exe
+	rm build
+	mkdir build

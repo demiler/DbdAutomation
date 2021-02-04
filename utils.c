@@ -104,3 +104,15 @@ millis(void) {
 
 }
 
+bool 
+cmpTcharStr(const TCHAR *s1, const TCHAR *s2) {
+  if (s1 == NULL) return false;
+  if (s2 == NULL) return false;
+
+  while (*s1 && *s2 && *s1 == *s2) {
+    s1++;
+    s2++;
+  }
+
+  return *s1 == *s2;
+}

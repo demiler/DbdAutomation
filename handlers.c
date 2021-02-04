@@ -23,10 +23,13 @@ kbHookCallback(int nCode, WPARAM action, LPARAM lParam) {
     switch (kbData.vkCode) {
       case KBK_Q: 
         semEv = SE_PROGRAM_CLOSE; break;
-      case KBK_SHIFT: 
-      case KBK_CTRL:
-        semEv = SE_SCRIPT_CANCEL; break;
+      case KBK_Z:
+        semEv = SE_SCRIPT_AUTOGEN; break;
     }
+  } else if (action == WM_KEYDOWN && kbData.flags != LLKHF_INJECTED) {
+    //printf("pressed: %x\n", kbData.flags);
+    if (kbData.vkCode == KBK_SHIFT || kbData.vkCode == KBK_CTRL)
+      semEv = SE_SCRIPT_CANCEL;
   }
 
   if (semEv != SE_NOTHING)
@@ -66,6 +69,7 @@ msHookCallback(int nCode, WPARAM action, LPARAM lParam) {
 	if (nCode < 0) //not mouse msg
     return CallNextHookEx(NULL, nCode, action, lParam);
 
+  bool validEvent = true;
   MSLLHOOKSTRUCT data = *((MSLLHOOKSTRUCT*)lParam);
   switch (action) {
     case WM_LBUTTONDOWN: msKeys[MSK_LEFT] = true; break;
@@ -86,6 +90,23 @@ msHookCallback(int nCode, WPARAM action, LPARAM lParam) {
       else
         msKeys[MSK_FORWARD] = false;
       break;
+
+    default:
+      validEvent = false;
+  }
+
+  if (validEvent) {
+    if (msKeys[MSK_LEFT] && active)
+      semEv = SE_SCRIPT_SPECIAL;
+    else if (msKeys[MSK_MIDDLE])
+      semEv = active ? SE_SCRIPT_RESTART : SE_SCRIPT_STRUGGLE;
+    else if (msKeys[MSK_FORWARD])
+      semEv = SE_SCRIPT_WIGGLE;
+    else if (msKeys[MSK_BACKWARD])
+      semEv = SE_SCRIPT_TOXIC;
+
+    if (semEv != SE_NOTHING)
+      ReleaseSemaphore(semaphore, 1, NULL);
   }
 
   return CallNextHookEx(NULL, nCode, action, lParam);
@@ -105,16 +126,25 @@ hEvHandler(
 ) {
   if (event == EVENT_OBJECT_FOCUS) {
     if (hwnd == NULL)
-      printf("focus event wasn't caused by window\n");
+      printf("Focus event wasn't caused by window\n");
     else {
       TCHAR title[256];
       int len = GetWindowTextA(hwnd, title, 256);
       if (!len) {
-        printf("focused window has no title\n");
+        //printf("Focused window has no title\n");
+        if (focused)
+          semEv = SE_APP_BLURED;
       }
       else {
-        printf("window '%hs' focused\n", title);
+        //printf("Windows '%hs' focused\n", title);
+        if (cmpTcharStr(title, AppName))
+          semEv = SE_APP_FOCUSED;
+        else if (focused)
+          semEv = SE_APP_BLURED;
       }
     }
+
+    if (semEv != SE_NOTHING)
+      ReleaseSemaphore(semaphore, 1, NULL);
   }
 }
