@@ -1,5 +1,7 @@
 #ifndef KEYS_H
 #define KEYS_H
+#include <stdbool.h>
+
 typedef enum kbKey { 
   KBK_BACKSPACE = 0x08,
   KBK_TAB = 0x09,
@@ -114,7 +116,11 @@ typedef enum kbKey {
   KBK_RWIN = 0x5C,
 } kbKey;
 
+bool kbKeys[255];
+
 typedef enum msKey {
   MSK_LEFT, MSK_MIDDLE, MSK_RIGHT, MSK_FORWARD, MSK_BACKWARD
 } msKey;
+
+bool msKeys[5];
 #endif

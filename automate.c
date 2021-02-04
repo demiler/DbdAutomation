@@ -5,6 +5,37 @@
 #include "sounds.h"
 #include "utils.h"
 #include "emulator.h"
+#include "keys.h"
+#include "global.h"
+#include "semevtype.h"
+
+/*===============================VARS AND CONSTS=============================*/
+static const time_t wiggleStopTime    = 10000;
+static const time_t struggleStopTime  = 10000;
+static const time_t autoGenStopTime   = 10000;
+static const time_t warningDelayTime  = 5000;
+static time_t startTime, runTime;
+static HANDLE stopSem;
+static enum stopSemEv_t ssemEv;
+/*==================================FUNCTIONS================================*/
+void scriptsInit() {
+  stopSem = CreateSemaphoreA(NULL, 0, 1, NULL);
+  ssemEv = SSE_NOTHING;
+}
+
+void resetTime(void) {
+  startTime = millis();
+  runTime = 0;
+  ssemEv = SSE_RESET;
+}
+
+void stop(void) {
+  ssemEv = SSE_STOP;
+}
+
+void action(void) {
+  ssemEv = SSE_ACTION;
+}
 
 //X 1) printf, beep
 //X 2) run for n seconds then warning 
@@ -16,26 +47,36 @@ void wiggle(void) {
   printf("Wiggle script active\n");
   makeSound(S_SCRIPT_ENABLED);
 
-  const time_t stopTime = 10000; //10ms
-  const time_t wrngTime = 8000; //warning time 8ms
-
-  time_t runTime = 0, startTime = millis();
+  const time_t wrngTime = wiggleStopTime - warningDelayTime;
   bool warned = false;
+  resetTime();
+  ssemEv = SSE_NOTHING;
 
-  while (runTime < stopTime) {
+  while (runTime < wiggleStopTime) {
     pressKey(KBK_A, 30);
     pressKey(KBK_D, 30);
-    Sleep(random(10, 50));
+    //Sleep(random(10, 50));
+    DWORD semRes = 
+      WaitForSingleObject(stopSem, random(10, 50));
+
+    if (semRes == WAIT_OBJECT_0) {
+      if (ssemEv == SSE_STOP)
+        break;
+      else if (ssemEv == SSE_RESET)
+        warned = false;
+      ssemEv = SSE_NOTHING;
+    }
 
     runTime = millis() - startTime;
+
     if (runTime > wrngTime && !warned) {
       warned = true;
       makeSound(S_SCRIPT_ABOUT_TO_END);
     }
   }
 
-  makeSound(S_SCRIPT_DISABLED);
   printf("Wiggle script disabled\n");
+  makeSound(S_SCRIPT_DISABLED);
 }
 
 //X 1) printf, beep
@@ -48,47 +89,57 @@ void struggle(void) {
   printf("Struggle script active\n");
   makeSound(S_SCRIPT_ENABLED);
 
-  const time_t stopTime = 30000;
-  const time_t wrngTime = stopTime - 5000; //warning time
-
-  time_t runTime = 0, startTime = millis();
+  const time_t wrngTime = struggleStopTime - warningDelayTime;
   bool warned = false;
 
-  while (runTime < stopTime) {
+  while (runTime < struggleStopTime) {
     pressKey(KBK_SPACE, 30);
-    Sleep(random(10, 50));
+    //Sleep(random(10, 50));
+    DWORD semRes =
+      WaitForSingleObject(stopSem, random(10, 50));
+
+    if (semRes == WAIT_OBJECT_0) {
+      if (ssemEv == SSE_STOP)
+        break;
+      else if (ssemEv == SSE_RESET)
+        warned = false;
+      ssemEv = SSE_NOTHING;
+    }
 
     runTime = millis() - startTime;
+
     if (runTime > wrngTime && !warned) {
       warned = true;
       makeSound(S_SCRIPT_ABOUT_TO_END);
     }
   }
 
-  makeSound(S_SCRIPT_DISABLED);
   printf("Struggle script disabled\n");
+  makeSound(S_SCRIPT_DISABLED);
 }
 
-//1)_ printf
-//2)_ disable if shift pressed
-//3)_ detect if lmb is pressed
-//4)_ press ctrl or lmb while running
-//5)_ run until ctrl or lmb is pressed
+//1)X printf
+//2)X disable if shift pressed
+//3)X detect if lmb is pressed
+//4)X press ctrl or lmb while running
+//5)X run until ctrl or lmb is pressed
 //    run at least for few sec if neither 
 //    pressed.
 void becomeToxic(void) {
+  if (kbKeys[KBK_SHIFT]) return;
+
   printf("Become toxic script active\n");
 
   const time_t stopTime = 500;
   const time_t tBagTime = 60;
   const time_t clickTime = 30;
-  const bool tBag = true;
+  const bool tBag = !msKeys[MSK_LEFT];
 
   if (tBag)
     pressKey(KBK_CTRL, 125);
 
   time_t runTime = 0, startTime = millis();
-  while (runTime < stopTime) {
+  while (runTime < stopTime || msKeys[MSK_LEFT]) {
     if (tBag) {
       pushKey(KBK_CTRL);
       Sleep(tBagTime);
@@ -102,8 +153,68 @@ void becomeToxic(void) {
       Sleep(clickTime);
     }
 
+    DWORD semRes =
+      WaitForSingleObject(stopSem, 0);
+    
+    if (semRes == WAIT_OBJECT_0 && ssemEv == SSE_STOP) {
+      break;
+      ssemEv = SSE_NOTHING;
+    }
+
     runTime = millis() - startTime;
   }
 
   printf("Become toxic script disable\n");
+}
+
+//1)X printf, beep
+//2)X wait 500ms if shift or ctrl is pressed
+//3)X Hold lmb while running
+//4)X run for n sec then warning
+//5)X run for n+p sec then disable
+//6)_ disable if shift or ctrl is pressed
+//7)_ if lmb is pressed press 'space' button
+//8)_ reset if mmb is pressed 
+void autoGen(void) {
+  if (kbKeys[KBK_CTRL] || kbKeys[KBK_SHIFT])
+    Sleep(300);
+  if (kbKeys[KBK_CTRL] || kbKeys[KBK_SHIFT])
+    return;
+
+  printf("AutoGen script is active\n");
+  makeSound(S_SCRIPT_ENABLED);
+
+  const time_t wrngTime = autoGenStopTime - warningDelayTime;
+  resetTime();
+  ssemEv = SSE_NOTHING;
+
+  pushMouseBtn(MSK_LEFT);
+  while (runTime < autoGenStopTime) {
+    //Sleep(50);
+    DWORD semRes =
+      WaitForSingleObject(stopSem, 500);
+
+    if (semRes == WAIT_OBJECT_0) {
+      if (ssemEv == SSE_STOP) {
+        ssemEv = SSE_NOTHING;
+        break;
+      }
+
+      switch (ssemEv) {
+        case SSE_RESET: warned = false; break;
+        case SSE_ACTION: pressKey(KBK_SPACE, 40); break;
+      }
+      ssemEv = SSE_NOTHING;
+    }
+
+    runTime = millis() - startTime;
+    if (runTime > wrngTime && !warned) {
+      warned = true;
+      makeSound(S_SCRIPT_ABOUT_TO_END);
+    }
+  }
+  releaseMouseBtn(MSK_LEFT);
+
+  printf("AutoGen script is disabled\n");
+  makeSound(S_SCRIPT_DISABLED);
 }

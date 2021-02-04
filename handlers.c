@@ -1,7 +1,9 @@
+#include <stdio.h>
+#include <stdbool.h>
 #include "handlers.h"
 #include "utils.h"
 #include "global.h"
-#include <stdio.h>
+#include "keys.h"
 
 //nCode -- is action valid (HC_ACTION)
 //lParam -- pointer to struct with keyboard data
@@ -16,8 +18,19 @@ kbHookCallback(int nCode, WPARAM action, LPARAM lParam) {
     return CallNextHookEx(NULL, nCode, action, lParam);
 
   KBDLLHOOKSTRUCT kbData = *((KBDLLHOOKSTRUCT*)lParam);
-  if (action == WM_KEYUP && kbData.vkCode == 0x51) //q code
-    closeProgram();
+
+  if (action == WM_KEYUP) {
+    switch (kbData.vkCode) {
+      case KBK_Q: 
+        semEv = SE_PROGRAM_CLOSE; break;
+      case KBK_SHIFT: 
+      case KBK_CTRL:
+        semEv = SE_SCRIPT_CANCEL; break;
+    }
+  }
+
+  if (semEv != SE_NOTHING)
+    ReleaseSemaphore(semaphore, 1, NULL);
 
   if (showKeys) {
     switch (action) {
@@ -28,6 +41,17 @@ kbHookCallback(int nCode, WPARAM action, LPARAM lParam) {
       default:            printf(" UNKNOWN       ");
     }
     printf("%5d | %5d\n", kbData.vkCode, kbData.scanCode);
+  }
+
+  switch (action) {
+    case WM_SYSKEYDOWN:
+    case WM_KEYDOWN:
+      kbKeys[kbData.vkCode] = true;
+      break;
+    case WM_SYSKEYUP:
+    case WM_KEYUP:
+      kbKeys[kbData.vkCode] = false;
+      break;
   }
 
 	// call the next hook in the hook chain.
@@ -42,8 +66,28 @@ msHookCallback(int nCode, WPARAM action, LPARAM lParam) {
 	if (nCode < 0) //not mouse msg
     return CallNextHookEx(NULL, nCode, action, lParam);
 
-  if (action == WM_RBUTTONUP)
-    printf("RMP is up\n");
+  MSLLHOOKSTRUCT data = *((MSLLHOOKSTRUCT*)lParam);
+  switch (action) {
+    case WM_LBUTTONDOWN: msKeys[MSK_LEFT] = true; break;
+    case WM_LBUTTONUP:   msKeys[MSK_LEFT] = false; break;
+    case WM_RBUTTONDOWN: msKeys[MSK_RIGHT] = true; break;
+    case WM_RBUTTONUP:   msKeys[MSK_RIGHT] = false; break;
+    case WM_MBUTTONDOWN: msKeys[MSK_MIDDLE] = true; break;
+    case WM_MBUTTONUP:   msKeys[MSK_MIDDLE] = false; break;
+    case WM_XBUTTONDOWN:
+      if (HIWORD(data.mouseData) == XBUTTON1)
+        msKeys[MSK_BACKWARD] = true;
+      else
+        msKeys[MSK_FORWARD] = true;
+      break;
+    case WM_XBUTTONUP:
+      if (HIWORD(data.mouseData) == XBUTTON1)
+        msKeys[MSK_BACKWARD] = false;
+      else
+        msKeys[MSK_FORWARD] = false;
+      break;
+  }
+
   return CallNextHookEx(NULL, nCode, action, lParam);
 }
 

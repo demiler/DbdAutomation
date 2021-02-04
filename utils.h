@@ -7,4 +7,5 @@ void loadConsole(void);
 void setHooks(void);
 int random(int from, int to);
 time_t millis(void);
+
 #endif

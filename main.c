@@ -5,13 +5,26 @@
 #include "utils.h"
 #include "logs.h"
 #include "sounds.h"
-#include <time.h>
+#include "keys.h"
+#include "global.h"
 
 #include "automate.c"
 
+DWORD WINAPI
+thing(LPVOID nothing) {
+  while (semEv != SE_PROGRAM_CLOSE) {
+    semEv = SE_NOTHING;
+    WaitForSingleObject(semaphore, INFINITE);
+    printf("Sem event: %d\n", semEv);
+  }
+
+  closeProgram();
+  return 0;
+}
+
 void
 start() {
-  //HANDLE mlHandler = CreateThread(NULL, 0, messageLoop, NULL, 0, NULL);
+  HANDLE seconds = CreateThread(NULL, 0, thing, NULL, 0, NULL);
 
   //start message loop
 	MSG msg;
@@ -21,11 +34,7 @@ start() {
 int
 main(void) {
   loadConsole();
-  //setHooks();
-  //start();
-
-  Sleep(2000);
-  struggle();
-
+  setHooks();
+  start();
   return 0;
 }

@@ -3,8 +3,9 @@
 #include "utils.h"
 #include "logs.h"
 #include "handlers.h"
+#include "global.h"
 
-/*============================GLOBAL VARIABLES============================*/
+/*============================VARIABLES============================*/
 static HANDLE hCons;               //console handle
 static DWORD oldConsMode;          //old console mode
 static HHOOK kbHook;               //keyboard low level hook;
@@ -26,6 +27,7 @@ closeProgram(void) {
 	UnhookWindowsHookEx(kbHook);
 	UnhookWindowsHookEx(msHook);
   UnhookWinEvent(evHook);
+  CloseHandle(semaphore);
 
   //terminate program
   exit(0);
@@ -50,6 +52,8 @@ loadConsole(void) {
 
 void
 setHooks(void) {
+  semaphore = CreateSemaphoreA(NULL, 0, 1, NULL);
+
 	kbHook = SetWindowsHookEx(WH_KEYBOARD_LL, kbHookCallback, NULL, 0);
   if (!kbHook)
     error("Can't set WH_KEYBOARD_LL hook", 4);
