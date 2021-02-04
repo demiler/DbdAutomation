@@ -66,11 +66,15 @@ kbHookCallback(int nCode, WPARAM action, LPARAM lParam) {
 
 LRESULT CALLBACK
 msHookCallback(int nCode, WPARAM action, LPARAM lParam) {
-	if (nCode < 0) //not mouse msg
+	if (nCode < 0 || action == WM_MOUSEMOVE) //not mouse msg
     return CallNextHookEx(NULL, nCode, action, lParam);
 
   bool validEvent = true;
   MSLLHOOKSTRUCT data = *((MSLLHOOKSTRUCT*)lParam);
+
+	if (data.flags == 0x1/*LLMHF_INJECTED*/)
+    return CallNextHookEx(NULL, nCode, action, lParam);
+
   switch (action) {
     case WM_LBUTTONDOWN: msKeys[MSK_LEFT] = true; break;
     case WM_LBUTTONUP:   msKeys[MSK_LEFT] = false; break;
@@ -96,7 +100,7 @@ msHookCallback(int nCode, WPARAM action, LPARAM lParam) {
   }
 
   if (validEvent) {
-    if (msKeys[MSK_LEFT] && active)
+    if (msKeys[MSK_RIGHT] && active)
       semEv = SE_SCRIPT_SPECIAL;
     else if (msKeys[MSK_MIDDLE])
       semEv = active ? SE_SCRIPT_RESTART : SE_SCRIPT_STRUGGLE;
@@ -109,7 +113,7 @@ msHookCallback(int nCode, WPARAM action, LPARAM lParam) {
       ReleaseSemaphore(semaphore, 1, NULL);
   }
 
-  return CallNextHookEx(NULL, nCode, action, lParam);
+return CallNextHookEx(NULL, nCode, action, lParam);
 }
 
 //=======================================

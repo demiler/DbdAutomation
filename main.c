@@ -70,7 +70,7 @@ thing(LPVOID nothing) {
         break;
     }
     
-    focused = true; //DEBUG ONLY ==========================
+    //focused = true; //DEBUG ONLY ==========================
 
     if (focused && actFuncPtr && !active) {
       printf("Running new action\n");
@@ -84,6 +84,9 @@ thing(LPVOID nothing) {
         printf("another action is already active");
       printf("\n");
     }
+
+    if (lastEv == semEv)
+      printf("I");
 
     lastEv = semEv;
   }

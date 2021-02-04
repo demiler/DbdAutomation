@@ -10,9 +10,9 @@
 #include "semevtype.h"
 
 /*===============================VARS AND CONSTS=============================*/
-static const time_t wiggleStopTime    = 10000;
-static const time_t struggleStopTime  = 10000;
-static const time_t autoGenStopTime   = 10000;
+static const time_t wiggleStopTime    = 30000;
+static const time_t struggleStopTime  = 30000;
+static const time_t autoGenStopTime   = 45000;
 static const time_t warningDelayTime  = 5000;
 static time_t startTime, runTime;
 static HANDLE stopSem;
@@ -68,8 +68,10 @@ void wiggle(void) {
     if (semRes == WAIT_OBJECT_0) {
       if (ssemEv == SSE_STOP)
         break;
-      else if (ssemEv == SSE_RESET)
+      else if (ssemEv == SSE_RESET) {
         warned = false;
+        makeSound(S_SCRIPT_ENABLED);
+      }
       ssemEv = SSE_NOTHING;
     }
 
@@ -113,8 +115,10 @@ void struggle(void) {
     if (semRes == WAIT_OBJECT_0) {
       if (ssemEv == SSE_STOP)
         break;
-      else if (ssemEv == SSE_RESET)
+      else if (ssemEv == SSE_RESET) {
         warned = false;
+        makeSound(S_SCRIPT_ENABLED);
+      }
       ssemEv = SSE_NOTHING;
     }
 
@@ -223,8 +227,14 @@ void autoGen(void) {
       }
 
       switch (ssemEv) {
-        case SSE_RESET: warned = false; break;
-        case SSE_ACTION: pressKey(KBK_SPACE, 40); break;
+        case SSE_RESET:
+          warned = false;
+          makeSound(S_SCRIPT_ENABLED);
+          break;
+        case SSE_ACTION: 
+          pushMouseBtn(MSK_LEFT);
+          pressKey(KBK_SPACE, 40);
+          break;
       }
       ssemEv = SSE_NOTHING;
     }
