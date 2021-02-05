@@ -19,6 +19,7 @@ wrap(LPVOID nothing) {
 
 DWORD WINAPI
 thing(LPVOID nothing) {
+  makeSound(S_PROGRAM_START);
   scriptsInit();
   HANDLE automate = NULL;
   bool exit = false;
@@ -32,13 +33,15 @@ thing(LPVOID nothing) {
     actFuncPtr = NULL;
     switch (semEv) {
       case SE_APP_FOCUSED:
-        if (semEv != lastEv) printf("App focused\n");
+        printf("App focused\n");
         focused = true;
+        makeSound(S_PROGRAM_ACTIVE);
         break;
       case SE_APP_BLURED:
-        if (semEv != lastEv) printf("App blured\n");
+        printf("App blured\n");
         stop();
         focused = false;
+        makeSound(S_PROGRAM_INACTIVE);
         break;
       case SE_SCRIPT_RESTART:
         if (semEv != lastEv) printf("Script time restarted\n");
@@ -92,6 +95,8 @@ thing(LPVOID nothing) {
   }
 
   stop();
+  makeSound(S_PROGRAM_CLOSE);
+  Sleep(300);
   closeProgram();
   return 0;
 }
