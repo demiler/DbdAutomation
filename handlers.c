@@ -113,7 +113,7 @@ msHookCallback(int nCode, WPARAM action, LPARAM lParam) {
       ReleaseSemaphore(semaphore, 1, NULL);
   }
 
-return CallNextHookEx(NULL, nCode, action, lParam);
+  return CallNextHookEx(NULL, nCode, action, lParam);
 }
 
 //=======================================

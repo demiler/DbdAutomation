@@ -1,3 +1,5 @@
+.PHONY: all
+
 all: build
 
 hooks.dll: hooks.c hooks.def
@@ -22,22 +24,18 @@ build/sounds.o: sounds.c
 build/global.o: global.c
 	 gcc -c -o $@ $<
 
+build/dbdautomate.res: res/dbdautomate.rc
+	windres $< -O coff -o $@
+
 build: main.c\
 	build/logs.o\
 	build/handlers.o\
 	build/emulator.o\
 	build/sounds.o\
 	build/global.o\
-	build/utils.o	
-		gcc -o run\
-			build/logs.o\
-			build/handlers.o\
-			build/emulator.o\
-			build/sounds.o\
-			build/global.o\
-			build/utils.o\
-			main.c\
-			-lwinmm -lshlwapi
+	build/utils.o
+	#build/dbdautomate.res
+		gcc -o run $^ -lwinmm -lshlwapi -lole32 -lgdi32
 
 rebuild: clear build
 
