@@ -27,6 +27,7 @@ build/global.o: global.c
 build/dbdautomate.res: res/dbdautomate.rc
 	windres $< -O coff -o $@
 
+	#build/dbdautomate.res
 build: main.c\
 	build/logs.o\
 	build/handlers.o\
@@ -34,7 +35,6 @@ build: main.c\
 	build/sounds.o\
 	build/global.o\
 	build/utils.o
-	#build/dbdautomate.res
 		gcc -o run $^ -lwinmm -lshlwapi -lole32 -lgdi32
 
 rebuild: clear build
