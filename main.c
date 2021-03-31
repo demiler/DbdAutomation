@@ -110,6 +110,7 @@ void
 start() {
   HANDLE seconds = CreateThread(NULL, 0, thing, NULL, 0, NULL);
 
+  logit("Waiting for input");
   //start message loop
 	MSG logit;
 	GetMessage(&logit, NULL, 0, 0);
@@ -191,9 +192,9 @@ void loadMouseDrivers(void) {
 
 int main(void) {
   loadConsole();
-  //setHooks();
+  setHooks();
   loadMouseDrivers();
-  //start();
+  start();
 
 
   return 0;
