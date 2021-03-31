@@ -1,5 +1,6 @@
 #include <windows.h>
 #include <stdio.h>
+#include <tlhelp32.h>
 #include <stdlib.h>
 #include "handlers.h"
 #include "utils.h"
@@ -9,6 +10,10 @@
 #include "global.h"
 
 #include "automate.c"
+
+#define MOUSE_DRIVER_NAME "lghub.exe"
+#define MOUSE_DRIVER_DIR "C:\\Program Files\\LGHUB"
+#define MOUSE_DRIVER_PATH MOUSE_DRIVER_DIR"\\"MOUSE_DRIVER_NAME
 
 static void (*actFuncPtr)(void);
 
@@ -106,14 +111,90 @@ start() {
   HANDLE seconds = CreateThread(NULL, 0, thing, NULL, 0, NULL);
 
   //start message loop
-	MSG msg;
-	GetMessage(&msg, NULL, 0, 0);
+	MSG logit;
+	GetMessage(&logit, NULL, 0, 0);
 }
 
-int
-main(void) {
+DWORD FindProcessId(LPCSTR processname) {
+  HANDLE hProcessSnap;
+  PROCESSENTRY32 pe32;
+  DWORD result = 0;
+
+  // Take a snapshot of all processes in the system.
+  hProcessSnap = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+  if (INVALID_HANDLE_VALUE == hProcessSnap) {
+    warning("Unable to get processes snapshot");
+    return -1;
+  }
+
+  pe32.dwSize = sizeof(PROCESSENTRY32); // <----- IMPORTANT
+
+  // Retrieve information about the first process,
+  // and exit if unsuccessful
+  if (!Process32First(hProcessSnap, &pe32)) {
+      CloseHandle(hProcessSnap);          // clean the snapshot object
+      warning("Unable to get snapshot info about processes");
+      return -1;
+  }
+
+  do {
+      if (!strcmp(processname, pe32.szExeFile))
+          result = pe32.th32ProcessID;
+  } while (result == 0 && Process32Next(hProcessSnap, &pe32));
+
+  CloseHandle(hProcessSnap);
+
+  return result;
+}
+
+void startUpMouseDriver(void) {
+    STARTUPINFO si;
+    PROCESS_INFORMATION pi;
+
+    ZeroMemory( &si, sizeof(si) );
+    si.cb = sizeof(si);
+    ZeroMemory( &pi, sizeof(pi) );
+
+    BOOL launched = CreateProcessA(MOUSE_DRIVER_PATH, "", NULL, NULL,
+        FALSE, 0, NULL, NULL, &si, &pi);
+
+    if (!launched) {
+      DWORD error = GetLastError();
+      warning("Unable to launcher mouse drivers [%d]", error);
+      if (error == 740) //command needs elavation
+        logit("It seems that your mouse driver set to run only as admin."
+            "Try to change it or run this program as admin.");
+    }
+    else
+      logit("Successfully loaded mouse drivers");
+}
+
+void loadMouseDrivers(void) {
+  DWORD pid = FindProcessId(MOUSE_DRIVER_NAME);
+  int retryCounter = 0;
+
+  while (pid == -1 && retryCounter < 5) {
+    pid = FindProcessId(MOUSE_DRIVER_NAME);
+    logit("Retrying... (%d)", ++retryCounter);
+  }
+
+  if (!pid) {
+    logit("Didn't find any mouse drivers loaded. Loading...");
+    startUpMouseDriver();
+  }
+  else if (pid == -1)
+    warning("Unable to get any info about processes");
+  else
+    logit("Mouse drivers are already loaded");
+
+}
+
+int main(void) {
   loadConsole();
-  setHooks();
-  start();
+  //setHooks();
+  loadMouseDrivers();
+  //start();
+
+
   return 0;
 }
