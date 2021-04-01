@@ -85,7 +85,7 @@ public:
         deathTimerPromise.set_value(true);
     }
 
-    virtual void loop() 
+    virtual void loop()
     {
         do {
             loopAction();
@@ -95,4 +95,86 @@ public:
     virtual void action() {}
 
     virtual void loopAction() {}
+};
+
+class Struggle : public Script {
+public:
+    using Script::Script;
+    void loopAction() override
+    {
+        //pressKey();
+    }
+};
+
+class Wiggle : public Script {
+public:
+    using Script::Script;
+    void loopAction() override
+    {
+        //pressKey();
+        //pressKey();
+    }
+};
+
+class BecomeToxic : public Script {
+    std::chrono::milliseconds tBagTime, clickTime;
+    bool tBag;
+public:
+    BecomeToxic(
+        std::chrono::milliseconds deathTime,
+        std::chrono::milliseconds warningTime,
+        std::chrono::milliseconds loopTimeout,
+        std::chrono::milliseconds tBagTime,
+        std::chrono::milliseconds clickTime,
+        bool playSound = false)
+        :
+        Script(deathTime, warningTime, loopTimeout, playSound),
+        tBagTime(tBagTime),
+        clickTime(clickTime) {}
+
+    void start() override
+    {
+        //if (shift.isHeld == true) return;
+        //tBag = leftMouseButton.isHeld()
+        if (tBag)
+            ;//ctrl.holdFor(125ms);
+        Script::start();
+    }
+
+    void loop() override
+    {
+        auto pushTime = tBag ? tBagTime : clickTime;
+        //auto pushFunction = tBag ? ctrl.press : leftMouseButton.press;
+        //auto releaseFunction = tBag ? ctrl.release : leftMouseButton.release;
+        do {
+            //pushFunction();
+            //sleep(pushTime);
+            //releaseFunction();
+            //sleep(pushTime);
+        } while (isRunning() );//&& leftMouseButton.isHeld());
+    }
+};
+
+class AutoGen : public Script {
+public:
+    using Script::Script;
+
+    void start() override
+    {
+        //if (isAnyOfCancellButtonsPressed()) sleep(300ms);
+        //if (isAnyOfCancellButtonsPressed()) return;
+        Script::start();
+    }
+
+    void loop() override
+    {
+        //leftMouseButton.press()
+        while (isRunning());
+        //leftMouseButton.release()
+    }
+
+    void action() override
+    {
+        //pressKey
+    }
 };
