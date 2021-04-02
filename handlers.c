@@ -66,13 +66,13 @@ kbHookCallback(int nCode, WPARAM action, LPARAM lParam) {
 
 LRESULT CALLBACK
 msHookCallback(int nCode, WPARAM action, LPARAM lParam) {
-	if (nCode < 0 || action == WM_MOUSEMOVE) //not mouse msg
+  if (nCode < 0 || action == WM_MOUSEMOVE) //not mouse msg
     return CallNextHookEx(NULL, nCode, action, lParam);
 
   bool validEvent = true;
   MSLLHOOKSTRUCT data = *((MSLLHOOKSTRUCT*)lParam);
 
-	if (data.flags == 0x1/*LLMHF_INJECTED*/)
+  if (data.flags == 0x1/*LLMHF_INJECTED*/)
     return CallNextHookEx(NULL, nCode, action, lParam);
 
   switch (action) {
