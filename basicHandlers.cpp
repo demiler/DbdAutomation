@@ -1,44 +1,73 @@
-#include "windows.h"
-#include <array>
-#include <functional>
+#include "basicHandlers.h"
 
-template <class HOOK_TYPE, unsigned MAX_SIZE>
-class BasicEventHandler {
-protected:
-    std::array<std::function<unsigned(bool)>, MAX_SIZE> callbacks;
-    HOOK_TYPE hook;
+template <class HOOK_TYPE>
+bool BasicEventHandler<HOOK_TYPE>::on(
+        unsigned key, std::function<unsigned(bool)> foo, bool replace)
+{
+    if (replace || callbacks.find(key) == callbacks.end())
+        callbacks[key] = foo;
+    else
+        return false;
+    return true;
+}
 
-    //some_type hookCallback(some args) = 0; should be in any dir classes
-public:
-    //calls SetWindowHook or smth like that, return true on success, othrewise false
-    virtual bool init() = 0;
+template <unsigned MAX_KEYS>
+bool BasicDeviceHandler<MAX_KEYS>::isUpState(unsigned state)
+{
+    return state & BasicDeviceHandler<MAX_KEYS>::State::up;
+}
 
-    //puts foo in map and returns the success of it
-    virtual bool on(unsigned key, std::function<unsigned(bool)> foo, bool replace = false)
-    {
-        if (replace || !callbacks[key])
-            callbacks[key] = foo;
-        else
-            return false;
-        return true;
+template <unsigned MAX_KEYS>
+bool BasicDeviceHandler<MAX_KEYS>::isDownState(unsigned state)
+{
+    return state & BasicDeviceHandler<MAX_KEYS>::State::down;
+}
+
+template <unsigned MAX_KEYS>
+bool BasicDeviceHandler<MAX_KEYS>::getKeyOnly(unsigned key)
+{
+    return key & (~BasicDeviceHandler<MAX_KEYS>::State::any);
+}
+
+template <unsigned MAX_KEYS>
+bool BasicDeviceHandler<MAX_KEYS>::on(
+        unsigned key, std::function<unsigned(bool)> foo, bool replace)
+{
+    if (!isUpState(key) && !isDownState(key))
+        key |= BasicDeviceHandler<MAX_KEYS>::State::any;
+    BasicEventHandler<HHOOK>::on(key, foo, replace);
+}
+
+template <unsigned MAX_KEYS>
+bool BasicDeviceHandler<MAX_KEYS>::stateOf(unsigned key)
+{
+    return buttonsState[key];
+}
+
+template <unsigned MAX_KEYS>
+void BasicDeviceHandler<MAX_KEYS>::setButtonUpdate(unsigned key, bool update)
+{
+    lockUpdate[key] = update;
+}
+
+template <unsigned MAX_KEYS>
+bool BasicDeviceHandler<MAX_KEYS>::getButtonUpdateState(unsigned key)
+{
+    return lockUpdate[key];
+}
+
+template <unsigned MAX_KEYS>
+BasicEventHandler::BasicEventHandler(bool ignoreInjections) :
+    ignoreInjections(ignoreInjections) {}
+
+template <unsigned MAX_KEYS>
+bool BasicDeviceHandler<MAX_KEYS>::callIfPresent(unsigned key) {
+    auto foo = callbacks.find(key);
+    if (foo == callbacks.end()) {
+        foo = callbacks.find(getKeyOnly(key));
+        if (foo != callbacks.end())
+            foo(isUpState(key));
     }
-};
-
-
-template <unsigned MAX_KEYS = 0xFD>
-class BasicDeviceHandler : public BasicEventHandler<HHOOK, MAX_KEYS> {
-protected:
-    std::array<bool, MAX_KEYS> buttonsState;
-
-    //do all the work
-    virtual LRESULT CALLBACK hookCallback(int, WPARAM, LPARAM) = 0;
-
-public:
-    enum State : unsigned { up = MAX_KEYS + 0b01, down = MAX_KEYS + 0b10 };
-    enum Buttons : unsigned;
-
-    virtual bool stateOf(unsigned key)
-    {
-        return buttonsState[key];
-    }
-};
+    else
+        foo(isUpState(key));
+}
