@@ -41,19 +41,19 @@ bool BasicDeviceHandler<MAX_KEYS>::on(
 template <unsigned MAX_KEYS>
 bool BasicDeviceHandler<MAX_KEYS>::stateOf(unsigned key)
 {
-    return buttonsState[key];
+    return buttonsState[getKeyOnly(key)];
 }
 
 template <unsigned MAX_KEYS>
 void BasicDeviceHandler<MAX_KEYS>::setButtonUpdate(unsigned key, bool update)
 {
-    lockUpdate[key] = update;
+    lockUpdate[getKeyOnly(key)] = update;
 }
 
 template <unsigned MAX_KEYS>
 bool BasicDeviceHandler<MAX_KEYS>::getButtonUpdateState(unsigned key)
 {
-    return lockUpdate[key];
+    return lockUpdate[getKeyOnly(key)];
 }
 
 template <unsigned MAX_KEYS>

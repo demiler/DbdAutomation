@@ -38,7 +38,10 @@ KeyboardHandler::~KeyboardHandler()
 
 KeyboardHandler::Button KeyboardHandler::fromString(const std::string& name)
 {
-    return keyNames[name];
+    auto fnd = keyNames.find(name);
+    if (fnd == keyNames.end())
+        return KeyboardHandler::Button::unknown;
+    return fnd->second;
 }
 
 std::map<std::string, KeyboardHandler::Button> KeyboardHandler::keyNames = {
