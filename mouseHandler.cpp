@@ -82,3 +82,58 @@ MouseHandler::~MouseHandler()
 {
     UnhookWindowsHookEx(hook);
 }
+
+void MouseHandler::pushKey(Button key)
+{
+    switch (getKeyOnly(key)) {
+        MouseHandler::left:
+            inp.mi.dwFlags = MOUSEEVENTF_LEFTDOWN;
+            break;
+        MouseHandler::right:
+            inp.mi.dwFlags = MOUSEEVENTF_RIGHTDOWN;
+            break;
+        MouseHandler::middle:
+            inp.mi.dwFlags = MOUSEEVENTF_MIDDLEDOWN;
+            break;
+        MouseHandler::forward:
+            inp.mi.dwFlags = MOUSEEVENTF_XDOWN;
+            inp.mi.mouseData = XBUTTON2;
+            break;
+        MouseHandler::backward:
+            inp.mi.dwFlags = MOUSEEVENTF_XDOWN;
+            inp.mi.mouseData = XBUTTON1;
+            break;
+    }
+    SendInput(1, &inp, sizeof(inp));
+}
+
+void MouseHandler::releaseKey(Button key)
+{
+    switch (getKeyOnly(key)) {
+        case MouseHandler::left: //left
+            inp.mi.dwFlags = MOUSEEVENTF_LEFTUP;
+            break;
+        case MouseHandler::middle: //middle
+            inp.mi.dwFlags = MOUSEEVENTF_MIDDLEUP;
+            break;
+        case MouseHandler::right: //right
+            inp.mi.dwFlags = MOUSEEVENTF_RIGHTUP;
+            break;
+        case MouseHandler::forward: //forward
+            inp.mi.dwFlags = MOUSEEVENTF_XUP;
+            inp.mi.mouseData = XBUTTON2;
+            break;
+        case MouseHandler::backward: //backward
+            inp.mi.dwFlags = MOUSEEVENTF_XUP;
+            inp.mi.mouseData = XBUTTON1;
+            break;
+    }
+    SendInput(1, &inp, sizeof(inp));
+}
+
+void MouseHandler::holdKey(MouseHandler::Button key, int delay)
+{
+    pushKey(key);
+    std::this_thread::sleep_for(delay);
+    releaseKey(key);
+}

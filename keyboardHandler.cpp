@@ -44,6 +44,27 @@ KeyboardHandler::Button KeyboardHandler::fromString(const std::string& name)
     return fnd->second;
 }
 
+void KeyboardHandler::pushKey(KeyboardHandler::Button key)
+{
+    inp.ki.wVk = getKeyOnly(key);
+    inp.ki.dwFlags = 0;
+    SendInput(1, &inp, sizeof(inp));
+}
+
+void KeyboardHandler::releaseKey(KeyboardHandler::Button key)
+{
+    inp.ki.wVk = getKeyOnly(key);
+    inp.ki.dwFlags = KEYEVENTF_KEYUP;
+    SendInput(1, &inp, sizeof(inp));
+}
+
+void KeyboardHandler::holdKey(KeyboardHandler::Button key, int delay)
+{
+    pushKey(key);
+    std::this_thread::sleep_for(delay);
+    releaseKey(key);
+}
+
 std::map<std::string, KeyboardHandler::Button> KeyboardHandler::keyNames = {
     { "backspace", KeyboardHandler::Button::backspace },
     { "tab",       KeyboardHandler::Button::tab       },
