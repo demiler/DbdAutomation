@@ -4,7 +4,7 @@ class MouseHandler : BasicDeviceHandler<0xF> {
     bool skipMouseMovment;
 
     unsigned fromVirtualCode(WPARAM, MSLLHOOKSTRUCT);
-    virtual LRESULT CALLBACK hookCallback(int, WPARAM, LPARAM) final;
+    LRESULT CALLBACK hookCallback(int, WPARAM, LPARAM) final;
 
 public:
     enum Button : unsigned {

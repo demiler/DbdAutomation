@@ -62,10 +62,11 @@ LRESULT CALLBACK MouseHandler::hookCallback(int nCode, WPARAM action, LPARAM raw
 
     callIfPresent(actionCode);
 
-    buttonsState[actionCode] = isUpState(actionCode);
+    auto key = getKeyOnly(actionCode);
+    buttonsState[key] = isUpState(actionCode);
 
     //by winapi documentation to lock button update from hook, you need to return non-zero
-    return lockUpdate[actionCode] ? 1 : CallNextHookEx(NULL, nCode, action, rawData);
+    return lockUpdate[key] ? 1 : CallNextHookEx(NULL, nCode, action, rawData);
 }
 
 MouseHandler::MouseHandler(bool skipMouseMovment, bool ignoreInjections) :
