@@ -1,21 +1,26 @@
+#pragma once
 #include <map>
 #include <string>
 #include <future>
 
-struct Event {
-    EventHandler::Events type;
-    unsigned value;
-    Event(EventHandler::Events type, unsigned value = 0) : type(type), value(value) {}
-};
-
 class EventHandler {
 public:
     enum class Events {
+		unset,
         app_focused, app_blured, scrip_restart,
         script_action, script_stop, script_start,
+		exit,
     };
 
-    EventHandler(bool raise = false) : fired(false) {
+	struct Event {
+		EventHandler::Events type;
+		unsigned value;
+		Event() : type(EventHandler::Events::unset), value(0u) {}
+		Event(const Event& ev) : type(ev.type), value(ev.value) {}
+		Event(EventHandler::Events type, unsigned value = 0u) : type(type), value(value) {}
+	};
+
+    EventHandler(bool raise = true) : fired(false) {
         if (raise) this->raise();
         else raised = false;
     }
@@ -32,32 +37,23 @@ public:
             raised = false;
             fired = false;
         }
-        return current;
+		return current.type;
     }
 
-    void setValue(const std::string &newValue) {
-        value = newValue;
-    }
-
-    const std::string& getValue() {
-        return value;
+    unsigned getValue() {
+        return current.value;
     }
 
     const std::string& getEventName() {
-        return EventHandler::eventsNames[current];
+        return EventHandler::eventsNames[current.type];
     }
 
-    void fire(Events event) {
-        fire(event, "");
-    }
-
-    void fire(Events event, const std::string &value) {
+    void fire(const Event &event) {
         if (raised && !fired) {
             sync_prom.set_value();
             fired = true;
         }
         current = event;
-        this->value = value;
     }
 
 private:
@@ -65,8 +61,7 @@ private:
     EventHandler(EventHandler&&) = delete;
 
     static std::map<Events, std::string> eventsNames;
-    std::string value;
-    Events current;
+	Event current;
     std::promise<void> sync_prom;
     std::future<void> sync;
     bool raised, fired;
@@ -81,3 +76,4 @@ EventHandler::eventsNames = {
       { EventHandler::Events::script_stop,   "Script stop"  },
       { EventHandler::Events::script_start,  "Script start"   },
 };
+
