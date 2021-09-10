@@ -1,9 +1,14 @@
-//#include <Windows.h>
-#include "./eventHandler.hpp"
+#pragma once
+#include <Windows.h>
 #include <list>
 #include <map>
 #include <functional>
 #include <utility>
+#include <iostream>
+#include "./eventHandler.hpp"
+#include "./HookSubscriber.hpp"
+
+//using Event = EventHandler::Event;
 
 enum Flags { null = 0, notInjected = 0x1, scriptActive = 0x2 };
 
@@ -13,19 +18,19 @@ public:
     enum class Key;
 
     KeyboardHandler(EventHandler& eventer) : eventer(eventer) {
-        hook = SetWindowsHookEx(WH_KEYBOARD_LL, callbackHandler, NULL, 0);
-        for (int i = 0; i < 256; i++) keysMap[i] = State::up;
+		subID = KbSubEv::subscribe(&KeyboardHandler::callbackHandler, this);
+		for (int i = 0; i < 256; i++) keysMap[i] = State::up;
     }
 
     ~KeyboardHandler() {
-        UnhookWindowsHookEx(hook);
+		KbSubEv::unsubscribe(subID);
     }
 
-    void onkeyup(Key key, Event event, Flags flags = Flags::null) {
+    void onkeyup(Key key, EventHandler::Event event, Flags flags = Flags::null) {
         addTrigger(State::up, key, event, flags);
     }
 
-    void onkeydown(Key key, Event event, Flags flags = Flags::null) {
+    void onkeydown(Key key, EventHandler::Event event, Flags flags = Flags::null) {
         addTrigger(State::down, key, event, flags);
     }
 
@@ -38,25 +43,21 @@ private:
         keysMap[static_cast<int>(key)] = state;
     }
 
-    void addTrigger(State state, Key key, Event event, Flags flags) {
-        auto it = triggers.find(std::make_pair(key, state));
+    void addTrigger(State state, Key key, EventHandler::Event event, Flags flags) {
+        auto searchPair = std::make_pair(key, state);
+        auto it = triggers.find(searchPair);
+
         if (it == triggers.end()) {
             triggerList_t list = { std::make_pair(event, flags) };
-            triggers.emplace(key, std::move(list));
+            triggers.emplace(searchPair, std::move(list));
         }
         else {
             it->second.emplace_back(std::make_pair(event, flags));
         }
     }
-
-    bool isPressInjected(LPARAM lParam) {
-        KBDLLHOOKSTRUCT data = *reinterpret_cast<KBDLLHOOKSTRUCT*>(lParam);
-        return data.flags & LLKHF_INJECTED;
-    }
-
-    LRESULT CALLBACK callbackHandler(int nCode, WPARAM action, LPARAM lParam) {
-        if (nCode < 0) //just procceed to next hook (documentation requirement)
-            return CallNextHookEx(NULL, nCode, action, lParam);
+	 
+    void callbackHandler(WPARAM action, LPARAM lp) {
+		auto data = *reinterpret_cast<KBDLLHOOKSTRUCT*>(lp);
 
         Key key = Key(data.vkCode);
         State state = (action == WM_KEYDOWN || action == WM_SYSKEYDOWN)
@@ -67,27 +68,25 @@ private:
         if (it != triggers.end()) {
             for (const auto& trigger : it->second) {
                 Flags flags = trigger.second;
-                if ((flags & Flags::notInjected) && isPressInjected(lParam)) continue;
+                if ((flags & Flags::notInjected) && (data.flags & LLKHF_INJECTED)) continue;
                 //if ((flags & Flags::scriptActive) && isScriptRunning())      continue;
 
-                Event event = trigger.first;
-                eventer.fire(event.type, event.value);
+				EventHandler::Event a = trigger.first;
+                eventer.fire(trigger.first);
             }
         }
 
         updateKeyState(key, state);
-        //call the next hook in the hook chain.
-        //This is nessecary or your hook chain will break and the hook stops
-        return CallNextHookEx(NULL, nCode, action, lParam);
     }
 
-    typedef std::list<std::pair<Event, Flags>> triggerList_t;
+    typedef std::list<std::pair<EventHandler::Event, Flags>> triggerList_t;
     typedef std::pair<Key, State> searchKey_t;
+	typedef HookSubscriber<WH_KEYBOARD_LL> KbSubEv;
 
     std::map<searchKey_t, triggerList_t> triggers;
     EventHandler &eventer;
     State keysMap[256];
-    HHOOK hook;
+	KbSubEv::subID_t subID;
 };
 
 enum class KeyboardHandler::Key {
