@@ -1,11 +1,13 @@
-//#include <Windows.h>
-#include "./eventHandler.hpp"
+#include <Windows.h>
 #include <list>
 #include <map>
 #include <functional>
 #include <utility>
+#include "./eventHandler.hpp"
+#include "./hookSubscriber.hpp"
 
-enum Flags { null = 0, notInjected = 0x1, scriptActive = 0x2 };
+using Event = EventHandler::Event;
+//enum Flags { null = 0, notInjected = 0x1, scriptActive = 0x2 };
 
 class MouseHandler {
 public:
@@ -13,7 +15,7 @@ public:
     enum class Button { left, middle, right, forward, backward };
 
     MouseHandler(EventHandler& eventer) : eventer(eventer) {
-        hook = SetWindowsHookEx(WH_KEYBOARD_LL, callbackHandler, NULL, 0);
+		subID = MsSubEv::subscribe(&MouseHandler::callbackHandler, this);
         for (int i = 0; i < 32; i++) btnsMap[i] = State::up;
     }
 
@@ -29,8 +31,8 @@ public:
         addTrigger(State::down, btn, event, flags);
     }
 
-    State operator[] (Keys key) {
-        return keysMap[static_cast<int>(key)];
+    State operator[] (Button key) {
+        return btnsMap[static_cast<int>(key)];
     }
 
 private:
@@ -40,21 +42,20 @@ private:
         btnsMap[static_cast<int>(btn)] = state;
     }
 
-    void addTrigger(State state, Button btn, Event event, Flags flags) {
-        auto it = triggers.find(std::make_pair(btn, state));
-        if (it == triggers.end()) {
-            triggerList_t list = { std::make_pair(event, flags) };
-            triggers.emplace(btn, std::move(list));
-        }
-        else {
-            it->second.emplace_back(std::make_pair(event, flags));
-        }
-    }
+	void addTrigger(State state, Button key, Event event, Flags flags) {
+		auto searchPair = std::make_pair(key, state);
+		auto it = triggers.find(searchPair);
 
-    LRESULT CALLBACK callbackHandler(int nCode, WPARAM action, LPARAM lParam) {
-        if (nCode < 0) //not mouse msg
-            return CallNextHookEx(NULL, nCode, action, lParam);
+		if (it == triggers.end()) {
+			triggerList_t list = { std::make_pair(event, flags) };
+			triggers.emplace(searchPair, std::move(list));
+		}
+		else {
+			it->second.emplace_back(std::make_pair(event, flags));
+		}
+	}
 
+    void callbackHandler(WPARAM action, LPARAM lParam) {
         msEvent msev;
         switch (action) {
             case WM_LBUTTONDOWN:
@@ -80,13 +81,12 @@ private:
                 msev = msEvent::unknown;
         }
 
-        if (msev != msEvent::button) //ignore all events except buttons press
-            return CallNextHookEx(NULL, nCode, action, lParam);
+		if (msev != msEvent::button) return; //ignore all events except buttons press
 
         MSLLHOOKSTRUCT data = *((MSLLHOOKSTRUCT*)lParam);
 
         //if (data.flags == 0x1/*LLMHF_INJECTED*/)
-        //return CallNextHookEx(NULL, nCode, action, lParam);
+        //return;
 
         Button btn;
         State state;
@@ -116,27 +116,27 @@ private:
         }
 
         auto it = triggers.find(std::make_pair(btn, state));
-        if (it != triggers.end()) {
+		if (it != triggers.end()) {
             for (const auto& trigger : it->second) {
                 Flags flags = trigger.second;
-                if ((flags & Flags::notInjected) && isPressInjected(lParam)) continue;
+                if ((flags & Flags::notInjected) && (data.flags & LLKHF_INJECTED)) continue;
                 //if ((flags & Flags::scriptActive) && isScriptRunning())      continue;
 
-                Event event = trigger.first;
-                eventer.fire(event.type, event.value);
+				EventHandler::Event a = trigger.first;
+                eventer.fire(trigger.first);
             }
         }
 
         updateBtnState(btn, state);
-
-        return CallNextHookEx(NULL, nCode, action, lParam);
     }
 
     typedef std::list<std::pair<Event, Flags>> triggerList_t;
     typedef std::pair<Button, State> searchKey_t;
+	typedef HookSubscriber<WH_MOUSE_LL> MsSubEv;
 
     std::map<searchKey_t, triggerList_t> triggers;
     EventHandler &eventer;
     State btnsMap[32];
     HHOOK hook;
+	MsSubEv::subID_t subID;
 };

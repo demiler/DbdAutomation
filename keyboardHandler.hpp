@@ -6,9 +6,9 @@
 #include <utility>
 #include <iostream>
 #include "./eventHandler.hpp"
-#include "./HookSubscriber.hpp"
+#include "./hookSubscriber.hpp"
 
-//using Event = EventHandler::Event;
+using Event = EventHandler::Event;
 
 enum Flags { null = 0, notInjected = 0x1, scriptActive = 0x2 };
 
@@ -18,6 +18,7 @@ public:
     enum class Key;
 
     KeyboardHandler(EventHandler& eventer) : eventer(eventer) {
+        KbSubEv::init();
 		subID = KbSubEv::subscribe(&KeyboardHandler::callbackHandler, this);
 		for (int i = 0; i < 256; i++) keysMap[i] = State::up;
     }
@@ -26,11 +27,11 @@ public:
 		KbSubEv::unsubscribe(subID);
     }
 
-    void onkeyup(Key key, EventHandler::Event event, Flags flags = Flags::null) {
+    void onkeyup(Key key, Event event, Flags flags = Flags::null) {
         addTrigger(State::up, key, event, flags);
     }
 
-    void onkeydown(Key key, EventHandler::Event event, Flags flags = Flags::null) {
+    void onkeydown(Key key, Event event, Flags flags = Flags::null) {
         addTrigger(State::down, key, event, flags);
     }
 
@@ -43,7 +44,7 @@ private:
         keysMap[static_cast<int>(key)] = state;
     }
 
-    void addTrigger(State state, Key key, EventHandler::Event event, Flags flags) {
+    void addTrigger(State state, Key key, Event event, Flags flags) {
         auto searchPair = std::make_pair(key, state);
         auto it = triggers.find(searchPair);
 
@@ -79,7 +80,7 @@ private:
         updateKeyState(key, state);
     }
 
-    typedef std::list<std::pair<EventHandler::Event, Flags>> triggerList_t;
+    typedef std::list<std::pair<Event, Flags>> triggerList_t;
     typedef std::pair<Key, State> searchKey_t;
 	typedef HookSubscriber<WH_KEYBOARD_LL> KbSubEv;
 

@@ -2,9 +2,11 @@
 class hook_t {
 	HHOOK hook;
 public:
-	hook_t() = delete;
-	hook_t(int HOOK_ID, HOOKPROC cb) : hook(SetWindowsHookExA(HOOK_ID, cb, NULL, 0)) { std::cout << "HOOK REGISTERD\n"; }
-	~hook_t() { UnhookWindowsHookEx(hook); }
+	hook_t() : hook(NULL) {}
+	hook_t(int HOOK_ID, HOOKPROC cb) : hook(SetWindowsHookExA(HOOK_ID, cb, NULL, 0)) {}
+	~hook_t() { if (hook != NULL) UnhookWindowsHookEx(hook); }
+	bool hooked() { return hook != NULL; }
+	void operator=(hook_t&& old) { std::swap(hook, old.hook); }
 };
 
 template <int HOOK_ID>
@@ -14,7 +16,6 @@ public:
 	typedef std::list<callback_t>::iterator subID_t;
 
 	static subID_t subscribe(callback_t sub) {
-		HookSubscriber<HOOK_ID>::hook;
 		return HookSubscriber<HOOK_ID>::subs.insert(std::end(subs), sub);
 	}
 
@@ -27,6 +28,11 @@ public:
 
 	static void unsubscribe(subID_t subID) {
 		HookSubscriber<HOOK_ID>::subs.erase(subID);
+	}
+
+	static void init() {
+		if (HookSubscriber<HOOK_ID>::hook.hooked()) return;
+		HookSubscriber<HOOK_ID>::hook = { HOOK_ID, HookSubscriber<HOOK_ID>::SubInvoker };
 	}
 
 private:
@@ -43,7 +49,7 @@ private:
 };
 
 template <int HOOK_ID>
-hook_t HookSubscriber<HOOK_ID>::hook = { HOOK_ID, HookSubscriber<HOOK_ID>::SubInvoker };
+hook_t HookSubscriber<HOOK_ID>::hook;
 
 template <int HOOK_ID>
 std::list<std::function<void(WPARAM, LPARAM)>> HookSubscriber<HOOK_ID>::subs;

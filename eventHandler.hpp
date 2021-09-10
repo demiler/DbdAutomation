@@ -7,7 +7,7 @@ class EventHandler {
 public:
     enum class Events {
 		unset,
-        app_focused, app_blured, scrip_restart,
+        app_focused, app_blured, script_restart,
         script_action, script_stop, script_start,
 		exit,
     };
@@ -71,7 +71,7 @@ std::map<EventHandler::Events, std::string>
 EventHandler::eventsNames = {
       { EventHandler::Events::app_focused,   "App focused"    },
       { EventHandler::Events::app_blured,    "App blured"     },
-      { EventHandler::Events::scrip_restart, "Script restart" },
+      { EventHandler::Events::script_restart, "Script restart" },
       { EventHandler::Events::script_action, "Script action"  },
       { EventHandler::Events::script_stop,   "Script stop"  },
       { EventHandler::Events::script_start,  "Script start"   },
