@@ -7,18 +7,19 @@
 #include <iostream>
 #include "./eventHandler.hpp"
 #include "./hookSubscriber.hpp"
+#include "./commonEnums.hpp"
 
 using Event = EventHandler::Event;
 
-enum Flags { null = 0, notInjected = 0x1, scriptActive = 0x2 };
-
 class KeyboardHandler {
 public:
-    enum class State { down, up };
     enum class Key;
 
     KeyboardHandler(EventHandler& eventer) : eventer(eventer) {
-        KbSubEv::init();
+        inp[0] = inp[1] = { 0 };
+        inp[0].type = inp[1].type = INPUT_KEYBOARD;
+        inp[1].ki.dwFlags = KEYEVENTF_KEYUP;
+
 		subID = KbSubEv::subscribe(&KeyboardHandler::callbackHandler, this);
 		for (int i = 0; i < 256; i++) keysMap[i] = State::up;
     }
@@ -39,7 +40,32 @@ public:
         return keysMap[static_cast<int>(key)];
     }
 
+    void press(Key key) {
+        inp->ki.wVk = KeyToVkCode(key);
+        SendInput(1, inp, sizeof(*inp));
+    }
+
+    void releaseKey(Key key) {
+        inp->ki.wVk = KeyToVkCode(key);
+        SendInput(1, inp + 1, sizeof(*inp));
+    }
+
+    void pressKey(Key key, int delay) {
+        inp[0].ki.wVk = inp[1].ki.wVk = KeyToVkCode(key);
+        if (delay > 0) {
+            SendInput(1, inp, sizeof(*inp));
+            Sleep(delay);
+            SendInput(1, inp + 1, sizeof(*inp));
+        }
+        else
+            SendInput(2, inp, sizeof(*inp));
+    }
+
 private:
+    DWORD KeyToVkCode(Key key) {
+        return static_cast<DWORD>(key);
+    }
+
     void updateKeyState(Key key, State state) {
         keysMap[static_cast<int>(key)] = state;
     }
@@ -88,6 +114,7 @@ private:
     EventHandler &eventer;
     State keysMap[256];
 	KbSubEv::subID_t subID;
+    INPUT inp[2];
 };
 
 enum class KeyboardHandler::Key {

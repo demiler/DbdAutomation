@@ -5,22 +5,25 @@
 #include <utility>
 #include "./eventHandler.hpp"
 #include "./hookSubscriber.hpp"
+#include "./commonEnums.hpp"
 
 using Event = EventHandler::Event;
-//enum Flags { null = 0, notInjected = 0x1, scriptActive = 0x2 };
 
 class MouseHandler {
 public:
-    enum class State { down, up };
     enum class Button { left, middle, right, forward, backward };
 
     MouseHandler(EventHandler& eventer) : eventer(eventer) {
+        inp[0] = inp[1] = { 0 };
+        inp[0].type = inp[1].type = INPUT_MOUSE;
+        inp[1].ki.dwFlags = KEYEVENTF_KEYUP;
+
 		subID = MsSubEv::subscribe(&MouseHandler::callbackHandler, this);
         for (int i = 0; i < 32; i++) btnsMap[i] = State::up;
     }
 
     ~MouseHandler() {
-        UnhookWindowsHookEx(hook);
+        MsSubEv::unsubscribe(subID);
     }
 
     void onbtnup(Button btn, Event event, Flags flags = Flags::null) {
@@ -35,7 +38,62 @@ public:
         return btnsMap[static_cast<int>(key)];
     }
 
+    void press(Button btn) {
+        inp->mi.dwFlags = BtnToFlags(btn, State::down);
+        inp->mi.mouseData = BtnToData(btn);
+        SendInput(1, inp, sizeof(*inp));
+    }
+
+    void release(Button btn) {
+        inp->mi.dwFlags = BtnToFlags(btn, State::up);
+        inp->mi.mouseData = BtnToData(btn);
+        SendInput(1, inp + 1, sizeof(*inp));
+    }
+
+    void pressKey(Button btn, int delay) {
+        inp[0].mi.dwFlags = BtnToFlags(btn, State::down);
+        inp[1].mi.dwFlags = BtnToFlags(btn, State::up);
+        inp[0].mi.mouseData = inp[1].mi.mouseData = BtnToData(btn);
+
+        if (delay > 0) {
+            SendInput(1, inp, sizeof(*inp));
+            Sleep(delay);
+            SendInput(1, inp + 1, sizeof(*inp));
+        }
+        else
+            SendInput(2, inp, sizeof(*inp));
+    }
+
 private:
+    WORD BtnToFlags(Button button, State state) {
+        if (state == State::up) {
+            switch (button) {
+                case Button::left: return MOUSEEVENTF_LEFTUP;
+                case Button::middle: return MOUSEEVENTF_MIDDLEUP;
+                case Button::right: return MOUSEEVENTF_RIGHTUP;
+                case Button::backward:
+                case Button::forward: return MOUSEEVENTF_XUP;
+            }
+        }
+        else {
+            switch (button) {
+            case Button::left: return MOUSEEVENTF_LEFTDOWN;
+            case Button::middle: return MOUSEEVENTF_MIDDLEDOWN;
+            case Button::right: return MOUSEEVENTF_RIGHTDOWN;
+            case Button::backward:
+            case Button::forward: return MOUSEEVENTF_XDOWN;
+            }
+        }
+    }
+
+    DWORD BtnToData(Button button) {
+        switch (button) {
+            case Button::forward: return XBUTTON2;
+            case Button::backward: return XBUTTON1;
+            default: return NULL;
+        }
+    }
+
     enum class msEvent { unknown, move, button, wheel };
 
     void updateBtnState(Button btn, State state) {
@@ -137,6 +195,6 @@ private:
     std::map<searchKey_t, triggerList_t> triggers;
     EventHandler &eventer;
     State btnsMap[32];
-    HHOOK hook;
 	MsSubEv::subID_t subID;
+    INPUT inp[2];
 };
