@@ -15,33 +15,31 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="eventHandler.hpp">
+    <ClInclude Include="src\eventHandler.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\hookSubscriber.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\keyboardHandler.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\mouseHandler.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\scriptHandler.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="script.hpp">
       <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="keyboardHandler.hpp">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="mouseHandler.hpp">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="scriptHandler.hpp">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="hookSubscriber.hpp">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Header.h">
-      <Filter>Source Files</Filter>
+    <ClInclude Include="src\commonEnums.hpp">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="makefile">
-      <Filter>Source Files</Filter>
-    </None>
   </ItemGroup>
 </Project>
