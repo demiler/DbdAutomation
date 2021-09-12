@@ -1,4 +1,9 @@
 #pragma once
+#include <Windows.h>
+#include <functional>
+#include <list>
+#include <utility>
+
 class hook_t {
 	HHOOK hook;
 public:

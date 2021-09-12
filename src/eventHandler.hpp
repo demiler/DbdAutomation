@@ -2,78 +2,76 @@
 #include <map>
 #include <string>
 #include <future>
+#include "./commonEnums.hpp"
+#include "./mouseHandler.hpp"
+#include "./keyboardHandler.hpp"
+
+using Key = Keyboard::Key;
+using Button = Mouse::Button;
 
 class EventHandler {
 public:
     enum class Events {
-		unset,
+        unset,
         app_focused, app_blured, script_restart,
         script_action, script_stop, script_start,
-		exit,
+        exit,
     };
 
-	struct Event {
-		EventHandler::Events type;
-		unsigned value;
-		Event() : type(EventHandler::Events::unset), value(0u) {}
-		Event(const Event& ev) : type(ev.type), value(ev.value) {}
-		Event(EventHandler::Events type, unsigned value = 0u) : type(type), value(value) {}
-	};
+    struct Event {
+        Events type;
+        unsigned value;
 
-    EventHandler(bool raise = true) : fired(false) {
-        if (raise) this->raise();
-        else raised = false;
-    }
+        Event();
+        Event(const Event&);
+        Event(Events, unsigned val = 0);
+    };
 
-    void raise() {
-        raised = true;
-        sync_prom = std::promise<void>();
-        sync = sync_prom.get_future();
-    }
+    EventHandler(bool raised = true);
+    ~EventHandler();
 
-    operator Events() {
-        if (raised) {
-            sync.wait();
-            raised = false;
-            fired = false;
-        }
-		return current.type;
-    }
+    void raise();
+    void fire(const Event&);
 
-    unsigned getValue() {
-        return current.value;
-    }
+    const std::string& getEventName();
+    unsigned getValue();
+    operator Events();
 
-    const std::string& getEventName() {
-        return EventHandler::eventsNames[current.type];
-    }
+    static void initHooks();
 
-    void fire(const Event &event) {
-        if (raised && !fired) {
-            sync_prom.set_value();
-            fired = true;
-        }
-        current = event;
-    }
+    void onMouseUp(Button btn, Event event, Flags flags = Flags::null);
+    void onMouseDown(Button btn, Event event, Flags flags = Flags::null);
+
+    void onKeyUp(Key btn, Event event, Flags flags = Flags::null);
+    void onKeyDown(Key btn, Event event, Flags flags = Flags::null);
 
 private:
+    typedef std::list<std::pair<Event, Flags>> triggerList_t;
+    typedef std::pair<Button, State> msSearchKey_t;
+    typedef std::pair<Key, State> kbSearchKey_t;
+    typedef HookSubscriber<WH_MOUSE_LL> MsHkSub;
+    typedef HookSubscriber<WH_KEYBOARD_LL> KbHkSub;
+
+    template <class btnSearch_t, class Button_t>
+    void addTrigger(std::map<btnSearch_t, triggerList_t>& triggerMap, State state, Button_t btn, Event event, Flags flags);
+
+    template <class btnSearch_t, class Button_t, class Data_t>
+    void handleFires(std::map<btnSearch_t, triggerList_t> triggerMap, Button_t btn, State state, Data_t data);
+
+    void mouseCallback(WPARAM action, LPARAM lParam);
+    void keyboardCallback(WPARAM action, LPARAM lp);
+
     EventHandler(const EventHandler&) = delete;
     EventHandler(EventHandler&&) = delete;
 
-    static std::map<Events, std::string> eventsNames;
-	Event current;
+    std::map<msSearchKey_t, triggerList_t> msTriggers;
+    std::map<kbSearchKey_t, triggerList_t> kbTriggers;
+    MsHkSub::subID_t msSubID;
+    MsHkSub::subID_t kbSubID;
+
+    Event current;
     std::promise<void> sync_prom;
     std::future<void> sync;
     bool raised, fired;
+    static std::map<Events, std::string> eventsNames;
 };
-
-std::map<EventHandler::Events, std::string>
-EventHandler::eventsNames = {
-      { EventHandler::Events::app_focused,   "App focused"    },
-      { EventHandler::Events::app_blured,    "App blured"     },
-      { EventHandler::Events::script_restart, "Script restart" },
-      { EventHandler::Events::script_action, "Script action"  },
-      { EventHandler::Events::script_stop,   "Script stop"  },
-      { EventHandler::Events::script_start,  "Script start"   },
-};
-

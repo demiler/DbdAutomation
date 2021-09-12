@@ -2,52 +2,41 @@
 #include <Windows.h>
 #include <list>
 #include <map>
-#include <functional>
-#include <utility>
-#include <iostream>
-#include "./eventHandler.hpp"
 #include "./hookSubscriber.hpp"
 #include "./commonEnums.hpp"
 
-using Event = EventHandler::Event;
-
-class KeyboardHandler {
+class Keyboard {
 public:
     enum class Key;
 
-    KeyboardHandler(EventHandler& eventer) : eventer(eventer) {
+    Keyboard() {
+        inp[0] = inp[1] = { 0 };
+        inp[0].type = inp[1].type = INPUT_KEYBOARD;
+        inp[1].ki.dwFlags = KEYEVENTF_KEYUP;
 
-		subID = KbSubEv::subscribe(&KeyboardHandler::callbackHandler, this);
-		for (int i = 0; i < 256; i++) keysMap[i] = State::up;
+		subID = KbSubEv::subscribe(&Keyboard::updateKeyState, this);
+		for (size_t i = 0; i < KEY_MAP_SIZE; ++i) keysMap[i] = State::up;
     }
 
-    ~KeyboardHandler() {
+    ~Keyboard() {
 		KbSubEv::unsubscribe(subID);
-    }
-
-    void onkeyup(Key key, Event event, Flags flags = Flags::null) {
-        addTrigger(State::up, key, event, flags);
-    }
-
-    void onkeydown(Key key, Event event, Flags flags = Flags::null) {
-        addTrigger(State::down, key, event, flags);
     }
 
     State operator[] (Key key) {
         return keysMap[static_cast<int>(key)];
     }
 
-    static void push(Key key) {
+    void push(Key key) {
         inp->ki.wVk = KeyToVkCode(key);
         SendInput(1, inp, sizeof(*inp));
     }
 
-    static void release(Key key) {
+    void release(Key key) {
         inp->ki.wVk = KeyToVkCode(key);
         SendInput(1, inp + 1, sizeof(*inp));
     }
 
-    static void press(Key key, int delay) {
+    void press(Key key, int delay) {
         inp[0].ki.wVk = inp[1].ki.wVk = KeyToVkCode(key);
         if (delay > 0) {
             SendInput(1, inp, sizeof(*inp));
@@ -59,67 +48,30 @@ public:
     }
 
 private:
-    static DWORD KeyToVkCode(Key key) {
-        return static_cast<DWORD>(key);
+    static WORD KeyToVkCode(Key key) {
+        return static_cast<WORD>(key);
     }
 
-    void updateKeyState(Key key, State state) {
-        keysMap[static_cast<int>(key)] = state;
-    }
-
-    void addTrigger(State state, Key key, Event event, Flags flags) {
-        auto searchPair = std::make_pair(key, state);
-        auto it = triggers.find(searchPair);
-
-        if (it == triggers.end()) {
-            triggerList_t list = { std::make_pair(event, flags) };
-            triggers.emplace(searchPair, std::move(list));
-        }
-        else {
-            it->second.emplace_back(std::make_pair(event, flags));
-        }
-    }
-	 
-    void callbackHandler(WPARAM action, LPARAM lp) {
-		auto data = *reinterpret_cast<KBDLLHOOKSTRUCT*>(lp);
+    void updateKeyState(WPARAM wp, LPARAM lp) {
+        auto data = *reinterpret_cast<KBDLLHOOKSTRUCT*>(lp);
 
         Key key = Key(data.vkCode);
-        State state = (action == WM_KEYDOWN || action == WM_SYSKEYDOWN)
+        State state = (wp == WM_KEYDOWN || wp == WM_SYSKEYDOWN)
             ? State::down
             : State::up;
 
-        auto it = triggers.find(std::make_pair(key, state));
-        if (it != triggers.end()) {
-            for (const auto& trigger : it->second) {
-                Flags flags = trigger.second;
-                if ((flags & Flags::notInjected) && (data.flags & LLKHF_INJECTED)) continue;
-                //if ((flags & Flags::scriptActive) && isScriptRunning())      continue;
-
-				EventHandler::Event a = trigger.first;
-                eventer.fire(trigger.first);
-            }
-        }
-
-        updateKeyState(key, state);
+        keysMap[static_cast<int>(key)] = state;
     }
 
-    typedef std::list<std::pair<Event, Flags>> triggerList_t;
-    typedef std::pair<Key, State> searchKey_t;
 	typedef HookSubscriber<WH_KEYBOARD_LL> KbSubEv;
+    static const size_t KEY_MAP_SIZE = 256;
 
-    std::map<searchKey_t, triggerList_t> triggers;
-    EventHandler &eventer;
-    State keysMap[256];
+    State keysMap[KEY_MAP_SIZE];
 	KbSubEv::subID_t subID;
-    static INPUT inp[2];
+    INPUT inp[2];
 };
 
-INPUT KeyboardHandler::inp[2] = {
-    { INPUT_KEYBOARD, { 0 } },
-    { INPUT_KEYBOARD, { 0, KEYEVENTF_KEYUP, 0, 0, 0 } }
-};
-
-enum class KeyboardHandler::Key {
+enum class Keyboard::Key {
     unknown = 0x0,
     backspace = 0x08,
     tab = 0x09,
