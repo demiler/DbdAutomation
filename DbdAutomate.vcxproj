@@ -29,6 +29,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="src\cpp\eventHandler.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{591D1931-A4B7-4758-9632-48E1CFBFE238}</ProjectGuid>
