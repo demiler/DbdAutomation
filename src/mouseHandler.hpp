@@ -2,40 +2,48 @@
 #include <Windows.h>
 #include <list>
 #include <map>
+#include <iostream>
 #include "./hookSubscriber.hpp"
 #include "./commonEnums.hpp"
 
 class Mouse {
 public:
-    enum class Button { unknown, left, middle, right, forward, backward };
+    enum class Button { left, middle, right, forward, backward, unknown };
     enum class mouseEvent { unknown, move, button, wheel };
 
     Mouse() {
         inp[0] = inp[1] = { 0 };
         inp[0].type = inp[1].type = INPUT_MOUSE;
+        subID = MsHookSub::subscribe(&Mouse::updateButtons, this);
 
-        subID = MsSubEv::subscribe(&Mouse::updateBtnState, this);
-        for (size_t i = 0; i < BUTTON_MAP_SIZE; ++i) buttonMap[i] = State::up;
+        for (size_t i = 0; i < MOUSE_BUTTONS_COUNT; ++i) {
+            buttonMap[i] = this->getWinState(Button(i));
+        }
     }
 
     ~Mouse() {
-        MsSubEv::unsubscribe(subID);
+        MsHookSub::unsubscribe(subID);
     }
 
-    State operator[] (Button key) {
-        return buttonMap[static_cast<int>(key)];
+    State getWinState(Button btn) {
+        SHORT winState = GetKeyState(BtnToVkCode(btn));
+        return HIBYTE(winState) ? State::down : State::up;
+    }
+
+    State operator[] (Button btn) {
+        return buttonMap[static_cast<int>(btn)];
     }
 
     void push(Button btn) {
-        inp->mi.dwFlags = BtnToFlags(btn, State::down);
-        inp->mi.mouseData = BtnToData(btn);
-        SendInput(1, inp, sizeof(*inp));
+        inp[0].mi.dwFlags = BtnToFlags(btn, State::down);
+        inp[0].mi.mouseData = BtnToData(btn);
+        SendInput(1, &inp[0], sizeof(*inp));
     }
 
     void release(Button btn) {
-        inp->mi.dwFlags = BtnToFlags(btn, State::up);
-        inp->mi.mouseData = BtnToData(btn);
-        SendInput(1, inp + 1, sizeof(*inp));
+        inp[1].mi.dwFlags = BtnToFlags(btn, State::up);
+        inp[1].mi.mouseData = BtnToData(btn);
+        SendInput(1, &inp[1], sizeof(*inp));
     }
 
     void press(Button btn, int delay) {
@@ -44,12 +52,13 @@ public:
         inp[0].mi.mouseData = inp[1].mi.mouseData = BtnToData(btn);
 
         if (delay > 0) {
-            SendInput(1, inp, sizeof(*inp));
+            SendInput(1, &inp[0], sizeof(*inp));
             Sleep(delay);
-            SendInput(1, inp + 1, sizeof(*inp));
+            SendInput(1, &inp[1], sizeof(*inp));
         }
-        else
+        else {
             SendInput(2, inp, sizeof(*inp));
+        }
     }
 
     static mouseEvent identifyEvent(WPARAM wParam) {
@@ -109,23 +118,46 @@ public:
     }
 
 private:
+    void updateButtons(WPARAM wp, LPARAM lp) {
+        auto data = *reinterpret_cast<MSLLHOOKSTRUCT*>(lp);
+
+        if (data.flags != LLMHF_INJECTED) {
+            auto btnPair = Mouse::identifyButton(wp, data);
+            if (btnPair.first != Button::unknown) {
+                buttonMap[static_cast<size_t>(btnPair.first)] = btnPair.second;
+            }
+        }
+    }
+
+    WORD BtnToVkCode(Button button) {
+        switch (button) {
+            case Button::left:     return VK_LBUTTON;
+            case Button::middle:   return VK_MBUTTON;
+            case Button::right:    return VK_RBUTTON;
+            case Button::backward: return VK_XBUTTON1;
+            case Button::forward:  return VK_XBUTTON2;
+            default:
+                return NULL;
+        }
+    }
+
     WORD BtnToFlags(Button button, State state) {
         if (state == State::up) {
             switch (button) {
-                case Button::left: return MOUSEEVENTF_LEFTUP;
-                case Button::middle: return MOUSEEVENTF_MIDDLEUP;
-                case Button::right: return MOUSEEVENTF_RIGHTUP;
+                case Button::left:    return MOUSEEVENTF_LEFTUP;
+                case Button::middle:  return MOUSEEVENTF_MIDDLEUP;
+                case Button::right:   return MOUSEEVENTF_RIGHTUP;
                 case Button::backward:
                 case Button::forward: return MOUSEEVENTF_XUP;
             }
         }
         else {
             switch (button) {
-            case Button::left: return MOUSEEVENTF_LEFTDOWN;
-            case Button::middle: return MOUSEEVENTF_MIDDLEDOWN;
-            case Button::right: return MOUSEEVENTF_RIGHTDOWN;
+            case Button::left:     return MOUSEEVENTF_LEFTDOWN;
+            case Button::middle:   return MOUSEEVENTF_MIDDLEDOWN;
+            case Button::right:    return MOUSEEVENTF_RIGHTDOWN;
             case Button::backward:
-            case Button::forward: return MOUSEEVENTF_XDOWN;
+            case Button::forward:  return MOUSEEVENTF_XDOWN;
             }
         }
     }
@@ -137,19 +169,10 @@ private:
             default: return NULL;
         }
     }
+    static const size_t MOUSE_BUTTONS_COUNT = 5;
+    typedef HookSubscriber<WH_MOUSE_LL> MsHookSub;
 
-    void updateBtnState(WPARAM wp, LPARAM lp) {
-        MSLLHOOKSTRUCT data = *reinterpret_cast<MSLLHOOKSTRUCT*>(lp);
-        auto buttonPair = Mouse::identifyButton(wp, data);
-
-        if (buttonPair.first != Button::unknown)
-            buttonMap[static_cast<int>(buttonPair.first)] = buttonPair.second;
-    }
-
-    typedef HookSubscriber<WH_MOUSE_LL> MsSubEv;
-    static const size_t BUTTON_MAP_SIZE = 32;
-
-    State buttonMap[BUTTON_MAP_SIZE];
-    MsSubEv::subID_t subID;
     INPUT inp[2];
+    MsHookSub::subID_t subID;
+    State buttonMap[MOUSE_BUTTONS_COUNT];
 };
