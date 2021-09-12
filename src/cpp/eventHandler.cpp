@@ -113,8 +113,7 @@ void EventHandler::mouseCallback(WPARAM action, LPARAM lParam) {
 
     auto data = *reinterpret_cast<MSLLHOOKSTRUCT*>(lParam);
 
-    //if (data.flags == 0x1/*LLMHF_INJECTED*/)
-    //return;
+    //if (data.flags == LLMHF_INJECTED) return;
 
     auto buttonPair = Mouse::identifyButton(action, data);
     handleFires(msTriggers, buttonPair.first, buttonPair.second, data);

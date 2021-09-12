@@ -2,6 +2,7 @@
 #include <Windows.h>
 #include <list>
 #include <map>
+#include <iostream>
 #include "./hookSubscriber.hpp"
 #include "./commonEnums.hpp"
 
@@ -13,61 +14,40 @@ public:
         inp[0] = inp[1] = { 0 };
         inp[0].type = inp[1].type = INPUT_KEYBOARD;
         inp[1].ki.dwFlags = KEYEVENTF_KEYUP;
-
-		subID = KbSubEv::subscribe(&Keyboard::updateKeyState, this);
-		for (size_t i = 0; i < KEY_MAP_SIZE; ++i) keysMap[i] = State::up;
-    }
-
-    ~Keyboard() {
-		KbSubEv::unsubscribe(subID);
     }
 
     State operator[] (Key key) {
-        return keysMap[static_cast<int>(key)];
+        //SHORT winState = GetKeyState(KeyToVkCode(key));
+        SHORT winState = GetAsyncKeyState(KeyToVkCode(key));
+        return HIBYTE(winState) ? State::down : State::up;
     }
 
     void push(Key key) {
-        inp->ki.wVk = KeyToVkCode(key);
-        SendInput(1, inp, sizeof(*inp));
+        inp[0].ki.wVk = KeyToVkCode(key);
+        SendInput(1, &inp[0], sizeof(*inp));
     }
 
     void release(Key key) {
-        inp->ki.wVk = KeyToVkCode(key);
-        SendInput(1, inp + 1, sizeof(*inp));
+        inp[1].ki.wVk = KeyToVkCode(key);
+        SendInput(1, &inp[1], sizeof(*inp));
     }
 
     void press(Key key, int delay) {
         inp[0].ki.wVk = inp[1].ki.wVk = KeyToVkCode(key);
         if (delay > 0) {
-            SendInput(1, inp, sizeof(*inp));
+            SendInput(1, &inp[0], sizeof(*inp));
             Sleep(delay);
-            SendInput(1, inp + 1, sizeof(*inp));
+            SendInput(1, &inp[1], sizeof(*inp));
         }
-        else
+        else {
             SendInput(2, inp, sizeof(*inp));
+        }
     }
 
 private:
     static WORD KeyToVkCode(Key key) {
         return static_cast<WORD>(key);
     }
-
-    void updateKeyState(WPARAM wp, LPARAM lp) {
-        auto data = *reinterpret_cast<KBDLLHOOKSTRUCT*>(lp);
-
-        Key key = Key(data.vkCode);
-        State state = (wp == WM_KEYDOWN || wp == WM_SYSKEYDOWN)
-            ? State::down
-            : State::up;
-
-        keysMap[static_cast<int>(key)] = state;
-    }
-
-	typedef HookSubscriber<WH_KEYBOARD_LL> KbSubEv;
-    static const size_t KEY_MAP_SIZE = 256;
-
-    State keysMap[KEY_MAP_SIZE];
-	KbSubEv::subID_t subID;
     INPUT inp[2];
 };
 

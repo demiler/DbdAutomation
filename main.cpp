@@ -33,20 +33,25 @@ void msgLoop() {
 void EventLoop() {
     EventHandler event;
 
-	event.onKeyUp(Keyboard::Key::q, Events::exit);
-    //event.onkeyup(  Key::z,     Start(Scripts::autogen));
+	event.onKeyUp(  Key::q,     Events::exit);
+    event.onKeyUp(  Key::z,     ScriptStart(Scripts::autogen));
     event.onKeyDown(Key::ctrl,  Events::script_stop, Flags::notInjected);
     event.onKeyDown(Key::shift, Events::script_stop, Flags::notInjected);
 
     event.onMouseDown(Button::right,    Events::script_action,  Flags::scriptActive);
     event.onMouseDown(Button::middle,   Events::script_restart, Flags::scriptActive);
-    //event.onMouseDown(Button::middle,   ScriptStart(Scripts::struggle));
     event.onMouseDown(Button::forward,  ScriptStart(Scripts::wiggle));
-    //event.onMouseDown(Button::Backward, Script(Scripts::toxic));
+    event.onMouseDown(Button::backward, ScriptStart(Scripts::toxic));
+    //event.onMouseDown(Button::middle,   ScriptStart(Scripts::struggle)); depricatetd
+
+    //event.onBlur(Events::app_blured);
+    //event.onFocus(Events::app_focused);
 
     //SoundHandler sound;
     ScriptHandler script;
+    Scripts scrType;
     bool focused = false;
+
     while (event != Events::exit) {
         switch (event) {
             case Events::app_focused:
@@ -63,24 +68,34 @@ void EventLoop() {
                 break;
 
             case Events::script_restart:
-                spdlog::info("Script restarted");
-                //script.restart();
+                if (script.isRunning()) {
+                    spdlog::info("Script restarted");
+                    script.restart();
+                }
                 break;
 
             case Events::script_stop:
-                spdlog::info("Script stopped");
-                script.stop();
+                if (script.isRunning()) {
+                    spdlog::info("Stopping script");
+                    script.stop();
+                }
                 break;
 
             case Events::script_action:
-                //spdlog::info("script_action");
-                //script.action();
+                if (script.hasAction()) {
+                    spdlog::info("Script Action");
+                    script.action();
+                }
                 break;
 
-            case Events::script_start: {
-                    Scripts scrType = Scripts(event.getValue());
+            case Events::script_start: 
+                scrType = Scripts(event.getValue());
+                if (!script.isRunning()) {
                     spdlog::info("Starting script {}", sts(scrType));
                     script.start(scrType);
+                }
+                else {
+                    spdlog::info("Can't start script: {} is already running", sts(scrType));
                 }
                 break;
 
