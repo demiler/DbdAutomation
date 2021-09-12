@@ -19,12 +19,12 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="script.hpp" />
     <ClInclude Include="src\commonEnums.hpp" />
     <ClInclude Include="src\eventHandler.hpp" />
     <ClInclude Include="src\hookSubscriber.hpp" />
     <ClInclude Include="src\keyboardHandler.hpp" />
     <ClInclude Include="src\mouseHandler.hpp" />
+    <ClInclude Include="src\script.hpp" />
     <ClInclude Include="src\scriptHandler.hpp" />
   </ItemGroup>
   <ItemGroup>

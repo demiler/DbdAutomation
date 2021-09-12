@@ -30,10 +30,10 @@
     <ClInclude Include="src\scriptHandler.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="script.hpp">
-      <Filter>Source Files</Filter>
-    </ClInclude>
     <ClInclude Include="src\commonEnums.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\script.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
