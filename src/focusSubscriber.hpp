@@ -6,16 +6,16 @@
 #include <list>
 
 class hookEvent_t {
-	HWINEVENTHOOK _hook;
+	HWINEVENTHOOK hook;
 public:
-	hookEvent_t() : _hook(NULL) {}
-	hookEvent_t(WINEVENTPROC cb) { hook(cb); }
-	~hookEvent_t() { UnhookWinEvent(_hook); }
-	bool hooked() { return _hook != NULL; }
-	void operator=(hookEvent_t&& old) noexcept { std::swap(_hook, old._hook); }
+	hookEvent_t() : hook(NULL) {}
+	hookEvent_t(WINEVENTPROC cb) { init(cb); }
+	~hookEvent_t() { UnhookWinEvent(hook); }
+	bool hooked() { return hook != NULL; }
+	void operator=(hookEvent_t&& old) noexcept { std::swap(hook, old.hook); }
 
-	void hook(WINEVENTPROC cb) {
-		_hook = SetWinEventHook(
+	void init(WINEVENTPROC cb) {
+		hook = SetWinEventHook(
 			EVENT_OBJECT_FOCUS, EVENT_OBJECT_FOCUS,
 			NULL, cb, 0, 0,
 			WINEVENT_OUTOFCONTEXT
@@ -34,8 +34,9 @@ public:
 	}
 
 	template <class T>
-	static subID_t subscribe(void(T::* foo)(void), T* inst) {
-		auto callback = std::bind(foo, inst);
+	static subID_t subscribe(void(T::* foo)(const char*), T* inst) {
+		using namespace std::placeholders;
+		auto callback = std::bind(foo, inst, _1);
 		return subscribe(callback);
 	}
 
@@ -45,7 +46,7 @@ public:
 
 	static void init() {
 		if (hook.hooked()) return;
-		hook.hook(reinterpret_cast<WINEVENTPROC>(SubInvoker));
+		hook.init(reinterpret_cast<WINEVENTPROC>(SubInvoker));
 	}
 
 private:
@@ -66,6 +67,3 @@ private:
 	static subList_t subs;
 	static hookEvent_t hook;
 };
-
-FocusSubscriber::subList_t FocusSubscriber::subs;
-hookEvent_t FocusSubscriber::hook;
