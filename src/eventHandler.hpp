@@ -5,6 +5,7 @@
 #include "./commonEnums.hpp"
 #include "./mouseHandler.hpp"
 #include "./keyboardHandler.hpp"
+#include "./focusSubscriber.hpp"
 
 using Key = Keyboard::Key;
 using Button = Mouse::Button;
@@ -45,7 +46,14 @@ public:
     void onKeyUp(Key btn, Event event, Flags flags = Flags::null);
     void onKeyDown(Key btn, Event event, Flags flags = Flags::null);
 
+    void onBlur(Events evType);
+    void onFocus(Events evType);
+
+    void watchAppFocus(const char* path);
+
 private:
+    enum Focus { focus, blur };
+
     typedef std::list<std::pair<Event, Flags>> triggerList_t;
     typedef std::pair<Button, State> msSearchKey_t;
     typedef std::pair<Key, State> kbSearchKey_t;
@@ -60,14 +68,19 @@ private:
 
     void mouseCallback(WPARAM action, LPARAM lParam);
     void keyboardCallback(WPARAM action, LPARAM lp);
+    void focusCallback(const char*);
 
     EventHandler(const EventHandler&) = delete;
     EventHandler(EventHandler&&) = delete;
 
     std::map<msSearchKey_t, triggerList_t> msTriggers;
     std::map<kbSearchKey_t, triggerList_t> kbTriggers;
+    std::list<Events> fcTriggers[2];
     MsHkSub::subID_t msSubID;
-    MsHkSub::subID_t kbSubID;
+    KbHkSub::subID_t kbSubID;
+    FocusSubscriber::subID_t fcSubID;
+
+    const char *applicationPath;
 
     Event current;
     std::promise<void> sync_prom;

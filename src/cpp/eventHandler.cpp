@@ -11,17 +11,19 @@ EventHandler::Event::
     Event(Events type, unsigned value) : type(type), value(value) {}
 
 /* EventHandler implementation */
-EventHandler::EventHandler(bool raise) : fired(false) {
+EventHandler::EventHandler(bool raise) : fired(false), applicationPath(nullptr) {
     if (raise) this->raise();
     else raised = false;
 
     msSubID = MsHkSub::subscribe(&EventHandler::mouseCallback, this);
     kbSubID = KbHkSub::subscribe(&EventHandler::keyboardCallback, this);
+    fcSubID = FocusSubscriber::subscribe(&EventHandler::focusCallback, this);
 }
 
 EventHandler::~EventHandler() {
     MsHkSub::unsubscribe(msSubID);
     KbHkSub::unsubscribe(kbSubID);
+    FocusSubscriber::unsubscribe(fcSubID);
 }
 
 void EventHandler::raise() {
@@ -58,6 +60,7 @@ EventHandler::operator Events() {
 void EventHandler::initHooks() {
     HookSubscriber<WH_KEYBOARD_LL>::init();
     HookSubscriber<WH_MOUSE_LL>::init();
+    FocusSubscriber::init();
 }
 
 /* Subscibtion methods */
@@ -75,6 +78,18 @@ void EventHandler::onKeyUp(Key btn, Event event, Flags flags) {
 
 void EventHandler::onKeyDown(Key btn, Event event, Flags flags) {
     addTrigger(kbTriggers, State::down, btn, event, flags);
+}
+
+void EventHandler::onBlur(Events evType) {
+    fcTriggers[Focus::blur].push_back(evType);
+}
+
+void EventHandler::onFocus(Events evType) {
+    fcTriggers[Focus::focus].push_back(evType);
+}
+
+void EventHandler::watchAppFocus(const char* path) {
+    applicationPath = path;
 }
 
 /* Windows hook callback handlers */
@@ -128,6 +143,17 @@ void EventHandler::keyboardCallback(WPARAM action, LPARAM lp) {
         : State::up;
 
     handleFires(kbTriggers, key, state, data);
+}
+
+void EventHandler::focusCallback(const char* path) {
+    if (applicationPath == nullptr) return;
+
+    Focus now = ((strcmp(applicationPath, path) == 0) ? Focus::focus : Focus::blur);
+    std::list<Events>& trigList = fcTriggers[now];
+
+    for (const auto& trigger : trigList) {
+        fire(trigger);
+    }
 }
 
 std::map<EventHandler::Events, std::string>
