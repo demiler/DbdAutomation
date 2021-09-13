@@ -1,53 +1,80 @@
 #pragma once
 #include "./eventHandler.hpp"
 #include "./script.hpp"
+#include <spdlog/spdlog.h>
+#include <functional>
 
 class ScriptHandler {
 public:
-    enum class Scripts { wiggle, autogen, toxic };
-    ScriptHandler() : script(nullptr) {}
+    enum class Scripts;
+    ScriptHandler() : script(nullptr),
+                      callback(std::bind(&ScriptHandler::scriptEnded, this))
+    {}
+
+    ~ScriptHandler() {
+        if (isRunning()) {
+            script->stop();
+            //scriptEnded() will be called as callback
+        }
+    }
+
+    bool isRunning() { return script != nullptr; }
 
     void start(Scripts sc) {
-        if (script == nullptr) {
-            script = ScriptHandler::createScript(sc);
-            script->start();
-        }
+        if (isRunning()) return;
+
+        script = ScriptHandler::createScript(sc);
+        script->setEndCallback(callback);
+        script->start();
     }
 
     void stop() {
-        if (script != nullptr) {
-            script->stop();
-            delete script;
-            script = nullptr;
-        }
+        if (!isRunning()) return;
+        script->stop();
+        //scriptEnded(); will be called as callback
     }
 
     void restart() {
+        if (!isRunning()) return;
         script->restart();
     }
 
     void action() {
+        if (!isRunning()) return;
         script->action();
     }
 
-private:
-    static Script* createScript(Scripts script);
+    bool hasAction() {
+        if (!isRunning()) return false;
+        return script->hasAction();
+    }
 
-    friend struct INIT;
-    Script *script;
+private:
+    std::function<void(void)> callback;
+    static Script* createScript(Scripts script);
+    Script* script;
+
+    void scriptEnded() {
+        delete script;
+        script = nullptr;
+        spdlog::info("Script ended");
+    }
 };
+
+EventHandler::Event ScriptStart(ScriptHandler::Scripts script) {
+    return EventHandler::Event(EventHandler::Events::script_start, static_cast<unsigned>(script));
+}
+
+//move to separte file (smth like, scripts_creation.cpp)
+enum class ScriptHandler::Scripts { wiggle, autogen, toxic };
 
 Script* ScriptHandler::createScript(ScriptHandler::Scripts script) {
     switch (script) {
-        //case Scripts::autogen: return new Autogen;
-        //case Scripts::toxic: return new BecomeToxic;
+        case Scripts::toxic: return new BecomeToxic;
+        case Scripts::autogen: return new Autogen;
         case Scripts::wiggle: return new Wiggle;
         default:
             spdlog::warn("Attempt to create unknown script type");
             return nullptr;
     }
-}
-
-EventHandler::Event ScriptStart(ScriptHandler::Scripts script) {
-    return EventHandler::Event(EventHandler::Events::script_start, static_cast<unsigned>(script));
 }

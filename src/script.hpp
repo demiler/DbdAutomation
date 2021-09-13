@@ -6,25 +6,32 @@
 #include <thread>
 #include <future>
 #include <chrono>
+#include <functional>
+#include <iostream>
 
 using Key = Keyboard::Key;
 using Button = Mouse::Button;
 using Events = EventHandler::Events;
+using namespace std::chrono_literals;
+
+typedef std::chrono::milliseconds millis_t;
 
 template<typename R>
 bool isReady(std::future<R> const& f) {
     return f.wait_for(std::chrono::seconds(0)) == std::future_status::ready;
 }
 
-time_t millis() {
+millis_t millis() {
     auto duration = std::chrono::system_clock::now().time_since_epoch();
-    return std::chrono::duration_cast<std::chrono::milliseconds>(duration).count();
+    return std::chrono::duration_cast<std::chrono::milliseconds>(duration);
 }
+
 class Script {
 public:
     void start() {
         resetPromise();
         loopThread = std::thread(&Script::looping, this);
+        loopThread.detach();
     }
 
     void restart() {
@@ -33,37 +40,46 @@ public:
 
     void stop() {
         loopPromise.set_value(Events::script_stop);
-        loopThread.join();
     }
 
     void action() {
         loopPromise.set_value(Events::script_action);
     }
 
-protected:
-    std::thread loopThread;
-    std::promise<Events> loopPromise;
-    std::future<Events> loopFuture;
-    time_t startTime, deathTime;
+    void setEndCallback(std::function<void(void)> cb) {
+        endCallback = cb;
+    }
 
+    virtual bool hasAction() { return false; }
+
+protected:
     Mouse ms;
     Keyboard kb;
+    millis_t startTime, deathTime;
 
     virtual void beforeLoop() {};
     virtual void afterLoop() {};
     virtual void loopAction() {};
     virtual void loop() = 0;
     virtual bool startLoop() { return true; }
-    virtual bool isTimeout() { return startTime - millis() >= deathTime; }
+    virtual bool isTimeout() { return millis() - startTime >= deathTime; }
 
 private:
+    std::thread loopThread;
+    std::promise<Events> loopPromise;
+    std::future<Events> loopFuture;
+    std::function<void(void)> endCallback;
+
     void resetPromise() {
         loopPromise = std::promise<Events>();
         loopFuture = loopPromise.get_future();
     }
 
     void looping() {
-        if (!startLoop()) return;
+        if (!startLoop()) {
+            endCallback();
+            return;
+        }
 
         startTime = millis();
         bool running = true;
@@ -94,30 +110,33 @@ private:
                 running = false;
         }
         afterLoop();
+        endCallback();
     }
 };
 
 class Wiggle : public Script {
 public:
+    Wiggle() { deathTime = 1000ms; }
     void loop() {
         kb.press(Key::a, 30);
         kb.press(Key::d, 30);
     }
 };
 
-/*
 class Autogen : public Script {
 public:
+    bool cancelButtonsPressed() {
+        return kb[Key::ctrl] == State::down || kb[Key::shift] == State::down;
+    }
+
     bool startLoop() {
-        if (kb[Key::ctrl] == State::down || kb[Key::shift] == State::down) {
-            Sleep(500);
-        }
-        return kb[Key::ctrl] == State::up && kb[Key::shift] == State::up;
+        if (cancelButtonsPressed()) Sleep(500);
+        return !cancelButtonsPressed();
     }
 
     void beforeLoop() {
         ms.push(Button::left);
-        ms.lock(Button::left); //lock - dont send button action to the system
+        //ms.lock(Button::left); //lock - dont send button action to the system
     }
 
     void loopAction() {
@@ -126,14 +145,23 @@ public:
     
     void afterLoop() {
         ms.release(Button::left);
-        ms.unlock(Button::left);
+        //ms.unlock(Button::left);
     }
+
+    void loop() {}
+
+    bool hasAction() override { return true; }
 };
 
-class Toxic : public Script {
+class BecomeToxic : public Script {
     enum class Type { tbag, click };
     Type type;
 public:
+    BecomeToxic() {
+        deathTime = 1000ms;
+        type = Type::tbag;
+    }
+
     bool startLoop() {
         return kb[Key::ctrl] == State::up && kb[Key::shift] == State::up;
     }
@@ -164,4 +192,3 @@ public:
         return Script::isTimeout() && ms[Button::left] != State::down;
     }
 };
-*/
