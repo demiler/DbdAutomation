@@ -21,23 +21,23 @@ public:
 	typedef std::list<callback_t>::iterator subID_t;
 
 	static subID_t subscribe(callback_t sub) {
-		return HookSubscriber<HOOK_ID>::subs.insert(std::end(subs), sub);
+		return subs.insert(std::end(subs), sub);
 	}
 
 	template <class T>
 	static subID_t subscribe(void(T::*foo)(WPARAM, LPARAM), T* inst) {
 		using namespace std::placeholders;
 		auto callback = std::bind(foo, inst, _1, _2);
-		return  HookSubscriber<HOOK_ID>::subscribe(callback);
+		return subscribe(callback);
 	}
 
 	static void unsubscribe(subID_t subID) {
-		HookSubscriber<HOOK_ID>::subs.erase(subID);
+		subs.erase(subID);
 	}
 
 	static void init() {
-		if (HookSubscriber<HOOK_ID>::hook.hooked()) return;
-		HookSubscriber<HOOK_ID>::hook = { HOOK_ID, HookSubscriber<HOOK_ID>::SubInvoker };
+		if (hook.hooked()) return;
+		hook = { HOOK_ID, SubInvoker };
 	}
 
 private:
@@ -46,7 +46,7 @@ private:
 
 	static LRESULT CALLBACK SubInvoker(int nCode, WPARAM wp, LPARAM lp) {
 		if (nCode >= 0) {
-			for (const auto& sub : HookSubscriber<HOOK_ID>::subs)
+			for (const auto& sub : subs)
 				sub(wp, lp);
 		}
 		return CallNextHookEx(NULL, nCode, wp, lp);
