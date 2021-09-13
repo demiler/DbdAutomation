@@ -21,6 +21,7 @@
   <ItemGroup>
     <ClInclude Include="src\commonEnums.hpp" />
     <ClInclude Include="src\eventHandler.hpp" />
+    <ClInclude Include="src\focusSubscriber.hpp" />
     <ClInclude Include="src\hookSubscriber.hpp" />
     <ClInclude Include="src\keyboardHandler.hpp" />
     <ClInclude Include="src\mouseHandler.hpp" />
@@ -30,6 +31,7 @@
   <ItemGroup>
     <ClCompile Include="main.cpp" />
     <ClCompile Include="src\cpp\eventHandler.cpp" />
+    <ClCompile Include="src\cpp\focusSubscriber.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{591D1931-A4B7-4758-9632-48E1CFBFE238}</ProjectGuid>

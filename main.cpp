@@ -1,7 +1,6 @@
 #include "./src/keyboardHandler.hpp"
 #include "./src/mouseHandler.hpp"
 #include "./src/eventHandler.hpp"
-#include "./src/hookSubscriber.hpp"
 #include "./src/scriptHandler.hpp"
 #include "spdlog/spdlog.h"
 #include <thread>
@@ -34,7 +33,7 @@ void EventLoop() {
     EventHandler event;
 
 	event.onKeyUp(  Key::q,     Events::exit);
-    event.onKeyUp(  Key::z,     ScriptStart(Scripts::autogen));
+    event.onKeyUp(Key::z, ScriptStart(Scripts::autogen));
     event.onKeyDown(Key::ctrl,  Events::script_stop, Flags::notInjected);
     event.onKeyDown(Key::shift, Events::script_stop, Flags::notInjected);
 
@@ -43,9 +42,10 @@ void EventLoop() {
     event.onMouseDown(Button::forward,  ScriptStart(Scripts::wiggle));
     event.onMouseDown(Button::backward, ScriptStart(Scripts::toxic));
     //event.onMouseDown(Button::middle,   ScriptStart(Scripts::struggle)); depricatetd
-
-    //event.onBlur(Events::app_blured);
-    //event.onFocus(Events::app_focused);
+    
+    event.watchAppFocus("C:\\Program Files (x86)\\Notepad++\\notepad++.exe");
+    event.onBlur(Events::app_blured);
+    event.onFocus(Events::app_focused);
 
     //SoundHandler sound;
     ScriptHandler script;
@@ -110,7 +110,7 @@ void EventLoop() {
 int main(void) {
     EventHandler::initHooks();
 	auto eventThread = std::thread(EventLoop);
-	msgLoop();
+    msgLoop();
 	eventThread.join();
 	return 0;
 }
