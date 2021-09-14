@@ -46,7 +46,7 @@ void readConfig(EventHandler &event) {
 
         event.onBlur(Events::app_blured);
         event.onFocus(Events::app_focused);
-        event.watchAppFocus("C:\\Program Files (x86)\\Notepad++\\notepad++.exe");
+        event.watchAppFocus("D:\\Games\\steamapps\\common\\Dead by Daylight\\DeadByDaylight.exe");
     }
     catch (winapiError winerr) {
         spdlog::error("On initialization winapi error occured\nCode: {}\nWhat: {}", winerr.code(), winerr.what());
