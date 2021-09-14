@@ -13,4 +13,7 @@ bool isFutureReady(std::future<R> const& f) {
 
 millis_t millis();
 
+
+int random(int from, int to);
+
 void getPathByHWND(HWND hwnd, char processPath[MAX_PATH]);

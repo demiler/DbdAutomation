@@ -27,7 +27,7 @@ public:
         script = ScriptHandler::createScript(sc);
         script->setEndCallback(callback);
         script->start();
-        sh.play(SoundHandler::Sounds::script_started);
+        if (script->playSounds()) sh.play(SoundHandler::Sounds::script_started);
     }
 
     void stop() {
@@ -59,10 +59,10 @@ private:
     Script* script;
 
     void scriptEnded() {
+        if (script->playSounds()) sh.play(SoundHandler::Sounds::script_ended);
         delete script;
         script = nullptr;
         spdlog::info("Script ended");
-        sh.play(SoundHandler::Sounds::script_ended);
     }
 };
 

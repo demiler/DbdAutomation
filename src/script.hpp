@@ -41,6 +41,7 @@ public:
     }
 
     virtual bool hasAction() { return false; }
+    virtual bool playSounds() { return true; }
 
 protected:
     Mouse ms;
@@ -105,7 +106,7 @@ private:
 
 class Wiggle : public Script {
 public:
-    Wiggle() { deathTime = 1000ms; }
+    Wiggle() { deathTime = 30s; }
     void loop() {
         kb.press(Key::a, 30);
         kb.press(Key::d, 30);
@@ -114,6 +115,8 @@ public:
 
 class Autogen : public Script {
 public:
+    Autogen() { deathTime = 60s; }
+
     bool cancelButtonsPressed() {
         return kb[Key::ctrl] == State::down || kb[Key::shift] == State::down;
     }
@@ -147,9 +150,11 @@ class BecomeToxic : public Script {
     Type type;
 public:
     BecomeToxic() {
-        deathTime = 1000ms;
+        deathTime = 500ms;
         type = Type::tbag;
     }
+
+    bool playSounds() override { return false; }
 
     bool startLoop() {
         return kb[Key::ctrl] == State::up && kb[Key::shift] == State::up;
@@ -158,22 +163,22 @@ public:
     void beforeLoop() {
         type = (ms[Button::left] == State::down) ? Type::click : Type::tbag;
         if (type == Type::tbag) {
-            kb.press(Key::ctrl, 300);
+            kb.press(Key::ctrl, 200);
         }
     }
 
     void loop() {
         if (type == Type::tbag) {
             kb.push(Key::ctrl);
-            Sleep(40);
+            Sleep(50);
             kb.release(Key::ctrl);
-            Sleep(40);
+            Sleep(50);
         }
         else {
-            ms.push(Button::left);
-            Sleep(40);
-            ms.release(Button::left);
-            Sleep(40);
+            ms.push(Button::right);
+            Sleep(10);
+            ms.release(Button::right);
+            Sleep(random(10, 40));
         }
     }
 

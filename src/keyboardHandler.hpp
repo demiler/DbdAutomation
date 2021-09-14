@@ -20,8 +20,8 @@ public:
     State operator[] (Key key) {
         //SHORT winState = GetKeyState(KeyToVkCode(key));
         SHORT winState = GetAsyncKeyState(KeyToVkCode(key));
-        if (winState == NULL)
-            throw winapiError("Failed to get key state");
+        //if (winState == NULL)
+        //    throw winapiError("Failed to get key state");
         return HIBYTE(winState) ? State::down : State::up;
     }
 

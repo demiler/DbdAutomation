@@ -72,6 +72,7 @@ private:
         if (hwnd == NULL) return;
 
         char processPath[MAX_PATH];
+        getPathByHWND(hwnd, processPath);
 
         for (const auto& sub : subs) sub(processPath);
     }

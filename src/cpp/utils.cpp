@@ -13,6 +13,10 @@ millis_t millis() {
     return std::chrono::duration_cast<std::chrono::milliseconds>(duration);
 }
 
+int random(int from, int to) {
+    return rand() % (to - from + 1) + from;
+}
+
 void getPathByHWND(HWND hwnd, char processPath[MAX_PATH]) {
     DWORD pid;
     GetWindowThreadProcessId(hwnd, &pid);

@@ -28,8 +28,8 @@ public:
 
     State getWinState(Button btn) {
         SHORT winState = GetKeyState(BtnToVkCode(btn));
-        if (winState == NULL)
-            throw winapiError("Failed to get mouse button state");
+        //if (winState == NULL)
+        //    throw winapiError("Failed to get mouse button state");
         return HIBYTE(winState) ? State::down : State::up;
     }
 

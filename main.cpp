@@ -46,7 +46,7 @@ void readConfig(EventHandler &event) {
 
         event.onBlur(Events::app_blured);
         event.onFocus(Events::app_focused);
-        event.watchAppFocus("D:\\Games\\steamapps\\common\\Dead by Daylight\\DeadByDaylight.exe");
+        event.watchAppFocus("D:\\Games\\steamapps\\common\\Dead by Daylight\\DeadByDaylight\\Binaries\\Win64\\DeadByDaylight-Win64-Shipping.exe");
     }
     catch (winapiError winerr) {
         spdlog::error("On initialization winapi error occured\nCode: {}\nWhat: {}", winerr.code(), winerr.what());
