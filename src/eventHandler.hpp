@@ -52,7 +52,7 @@ public:
     void watchAppFocus(const char* path);
 
 private:
-    enum Focus { focus, blur };
+    enum Focus { focus, blur, unset };
 
     typedef std::list<std::pair<Event, Flags>> triggerList_t;
     typedef std::pair<Button, State> msSearchKey_t;
@@ -80,6 +80,7 @@ private:
     KbHkSub::subID_t kbSubID;
     FocusSubscriber::subID_t fcSubID;
 
+    Focus lastFocusEvent;
     const char *applicationPath;
 
     Event current;

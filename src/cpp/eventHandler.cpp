@@ -1,4 +1,5 @@
 #include "../eventHandler.hpp"
+#include <cstring>
 
 /*  Structure implementation */
 EventHandler::Event::
@@ -11,7 +12,7 @@ EventHandler::Event::
     Event(Events type, unsigned value) : type(type), value(value) {}
 
 /* EventHandler implementation */
-EventHandler::EventHandler(bool raise) : fired(false), applicationPath(nullptr) {
+EventHandler::EventHandler(bool raise) : fired(false), applicationPath(nullptr), lastFocusEvent(Focus::unset) {
     if (raise) this->raise();
     else raised = false;
 
@@ -90,6 +91,15 @@ void EventHandler::onFocus(Events evType) {
 
 void EventHandler::watchAppFocus(const char* path) {
     applicationPath = path;
+    auto pathFocused = FocusSubscriber::currentFocus();
+
+    lastFocusEvent = ((strcmp(applicationPath, pathFocused) == 0) ? Focus::focus : Focus::blur);
+    
+    if (lastFocusEvent == Focus::focus) {
+        for (const auto& trigger : fcTriggers[Focus::focus]) {
+            fire(trigger);
+        }
+    }
 }
 
 /* Windows hook callback handlers */
@@ -149,6 +159,15 @@ void EventHandler::focusCallback(const char* path) {
     if (applicationPath == nullptr) return;
 
     Focus now = ((strcmp(applicationPath, path) == 0) ? Focus::focus : Focus::blur);
+
+    if (lastFocusEvent == Focus::unset && now == Focus::blur) {//ignore if app never was focused
+        lastFocusEvent = Focus::blur;
+        return;
+    }
+
+    if (lastFocusEvent == now) return;
+    lastFocusEvent = now;
+
     std::list<Events>& trigList = fcTriggers[now];
 
     for (const auto& trigger : trigList) {
