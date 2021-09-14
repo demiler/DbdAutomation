@@ -5,6 +5,8 @@
 #include <psapi.h>
 #include <list>
 #include <iostream>
+#include "./exceptions.hpp"
+#include "./utitls.hpp"
 
 class hookEvent_t {
     HWINEVENTHOOK hook;
@@ -21,6 +23,8 @@ public:
             NULL, cb, 0, 0,
             WINEVENT_OUTOFCONTEXT
         );
+        if (hook == NULL)
+            throw winapiError(GetLastError(), "Unable to set focus event hook");
     }
 };
 
@@ -53,17 +57,12 @@ public:
     static const char* currentFocus() {
         static char processPath[MAX_PATH];
         
-        DWORD pid;
         HWND curWindow = GetForegroundWindow();
-        GetWindowThreadProcessId(curWindow, &pid);
-        HANDLE processHandle = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, pid);
+        if (curWindow == NULL)
+            throw winapiError("Unable to get foreground window");
 
-        if (processHandle != NULL) {
-            if (GetModuleFileNameEx(processHandle, NULL, processPath, MAX_PATH)) {
-                for (const auto& sub : subs) sub(processPath);
-            }
-            CloseHandle(processHandle);
-        }
+        getPathByHWND(curWindow, processPath);
+
         return processPath;
     }
 
@@ -72,17 +71,9 @@ private:
     static void SubInvoker(HWINEVENTHOOK hWinEventHook, DWORD _, HWND hwnd) {
         if (hwnd == NULL) return;
 
-        DWORD pid;
-        GetWindowThreadProcessId(hwnd, &pid);
-        HANDLE processHandle = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, pid);
-
         char processPath[MAX_PATH];
-        if (processHandle != NULL) {
-            if (GetModuleFileNameEx(processHandle, NULL, processPath, MAX_PATH)) {
-                for (const auto& sub : subs) sub(processPath);
-            }
-            CloseHandle(processHandle);
-        }
+
+        for (const auto& sub : subs) sub(processPath);
     }
 
     static subList_t subs;

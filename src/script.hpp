@@ -77,7 +77,7 @@ private:
         while (running) {
             loop();
 
-            if (isReady(loopFuture)) {
+            if (isFutureReady(loopFuture)) {
                 switch (loopFuture.get()) {
                     case Events::script_stop:
                         running = false;
