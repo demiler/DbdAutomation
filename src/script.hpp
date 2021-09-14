@@ -137,7 +137,7 @@ public:
         //ms.unlock(Button::left);
     }
 
-    void loop() {}
+    void loop() { Sleep(10); }
 
     bool hasAction() override { return true; }
 };

@@ -93,12 +93,15 @@ void EventLoop() {
 
             case Events::script_start: 
                 scrType = Scripts(event.getValue());
-                if (!script.isRunning()) {
+                if (focused && !script.isRunning()) {
                     spdlog::info("Starting script {}", sts(scrType));
                     script.start(scrType);
                 }
-                else {
+                else if (focused) {
                     spdlog::info("Can't start script: {} is already running", sts(scrType));
+                }
+                else {
+                    spdlog::info("Can't start script: App is not in focus");
                 }
                 break;
 

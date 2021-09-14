@@ -1,5 +1,6 @@
 #pragma once
 #include "./eventHandler.hpp"
+#include "./soundHandler.hpp"
 #include "./script.hpp"
 #include <spdlog/spdlog.h>
 #include <functional>
@@ -26,6 +27,7 @@ public:
         script = ScriptHandler::createScript(sc);
         script->setEndCallback(callback);
         script->start();
+        sh.play(SoundHandler::Sounds::script_started);
     }
 
     void stop() {
@@ -37,6 +39,7 @@ public:
     void restart() {
         if (!isRunning()) return;
         script->restart();
+        sh.play(SoundHandler::Sounds::script_started);
     }
 
     void action() {
@@ -50,6 +53,7 @@ public:
     }
 
 private:
+    SoundHandler sh;
     std::function<void(void)> callback;
     static Script* createScript(Scripts script);
     Script* script;
@@ -58,6 +62,7 @@ private:
         delete script;
         script = nullptr;
         spdlog::info("Script ended");
+        sh.play(SoundHandler::Sounds::script_ended);
     }
 };
 
