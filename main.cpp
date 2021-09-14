@@ -2,11 +2,13 @@
 #include "./src/mouseHandler.hpp"
 #include "./src/eventHandler.hpp"
 #include "./src/scriptHandler.hpp"
+#include "./src/soundHandler.hpp"
 #include "spdlog/spdlog.h"
 #include <thread>
 #include <iostream>
 
 using Scripts = ScriptHandler::Scripts;
+using Sounds = SoundHandler::Sounds;
 using Events = EventHandler::Events;
 using Button = Mouse::Button;
 using Key = Keyboard::Key;
@@ -24,16 +26,16 @@ auto sts(Scripts script) {
 
 void msgLoop() {
     spdlog::info("Started message loop");
-	MSG logit;
-	GetMessage(&logit, NULL, 0, 0);
+    MSG logit;
+    GetMessage(&logit, NULL, 0, 0);
     spdlog::info("Message loop is completed");
 }
 
 void EventLoop() {
     EventHandler event;
 
-	event.onKeyUp(  Key::q,     Events::exit);
-    event.onKeyUp(Key::z, ScriptStart(Scripts::autogen));
+    event.onKeyUp(  Key::q,     Events::exit);
+    event.onKeyUp(  Key::z,     ScriptStart(Scripts::autogen));
     event.onKeyDown(Key::ctrl,  Events::script_stop, Flags::notInjected);
     event.onKeyDown(Key::shift, Events::script_stop, Flags::notInjected);
 
@@ -41,30 +43,31 @@ void EventLoop() {
     event.onMouseDown(Button::middle,   Events::script_restart, Flags::scriptActive);
     event.onMouseDown(Button::forward,  ScriptStart(Scripts::wiggle));
     event.onMouseDown(Button::backward, ScriptStart(Scripts::toxic));
-    //event.onMouseDown(Button::middle,   ScriptStart(Scripts::struggle)); depricatetd
     
-    event.watchAppFocus("C:\\Program Files (x86)\\Notepad++\\notepad++.exe");
     event.onBlur(Events::app_blured);
     event.onFocus(Events::app_focused);
+    event.watchAppFocus("C:\\Program Files (x86)\\Notepad++\\notepad++.exe");
 
-    //SoundHandler sound;
+    SoundHandler sound;
     ScriptHandler script;
     Scripts scrType;
     bool focused = false;
+
+    sound.play(Sounds::app_open);
 
     while (event != Events::exit) {
         switch (event) {
             case Events::app_focused:
                 spdlog::info("App focused");
-                //focused = true;
-                //sound.make(Sounds::app_focused)
+                focused = true;
+                sound.play(Sounds::app_focused);
                 break;
 
             case Events::app_blured:
                 spdlog::info("App blured");
-                //script.stop();
-                //focused = false;
-                //sound.make(Sounds::app_blured);
+                script.stop();
+                focused = false;
+                sound.play(Sounds::app_blured);
                 break;
 
             case Events::script_restart:
@@ -100,17 +103,19 @@ void EventLoop() {
                 break;
 
             default:
-				spdlog::warn("Unknown event: {}", event.getEventName());
+                spdlog::warn("Unknown event: {}", event.getEventName());
         }
         event.raise();
-	}
+    }
+    sound.play(Sounds::app_close);
+    spdlog::info("Closing...");
     exit(0);
 }
 
 int main(void) {
     EventHandler::initHooks();
-	auto eventThread = std::thread(EventLoop);
+    auto eventThread = std::thread(EventLoop);
     msgLoop();
-	eventThread.join();
-	return 0;
+    eventThread.join();
+    return 0;
 }

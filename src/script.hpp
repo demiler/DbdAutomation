@@ -2,6 +2,7 @@
 #include "./keyboardHandler.hpp"
 #include "./mouseHandler.hpp"
 #include "./eventHandler.hpp"
+#include "./utitls.hpp"
 #include <spdlog/spdlog.h>
 #include <thread>
 #include <future>
@@ -13,18 +14,6 @@ using Key = Keyboard::Key;
 using Button = Mouse::Button;
 using Events = EventHandler::Events;
 using namespace std::chrono_literals;
-
-typedef std::chrono::milliseconds millis_t;
-
-template<typename R>
-bool isReady(std::future<R> const& f) {
-    return f.wait_for(std::chrono::seconds(0)) == std::future_status::ready;
-}
-
-millis_t millis() {
-    auto duration = std::chrono::system_clock::now().time_since_epoch();
-    return std::chrono::duration_cast<std::chrono::milliseconds>(duration);
-}
 
 class Script {
 public:
