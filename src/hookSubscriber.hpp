@@ -9,7 +9,7 @@ class hook_t {
 public:
     hook_t() : hook(NULL) {}
     hook_t(int HOOK_ID, HOOKPROC cb) : hook(SetWindowsHookExA(HOOK_ID, cb, NULL, 0)) {}
-    ~hook_t() { if (hook != NULL) UnhookWindowsHookEx(hook); }
+    ~hook_t() { if (hooked()) UnhookWindowsHookEx(hook); }
     bool hooked() { return hook != NULL; }
     void operator=(hook_t&& old) noexcept { std::swap(hook, old.hook); }
 };

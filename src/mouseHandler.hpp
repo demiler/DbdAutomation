@@ -5,6 +5,7 @@
 #include <iostream>
 #include "./hookSubscriber.hpp"
 #include "./commonEnums.hpp"
+#include "./exceptions.hpp"
 
 class Mouse {
 public:
@@ -27,6 +28,8 @@ public:
 
     State getWinState(Button btn) {
         SHORT winState = GetKeyState(BtnToVkCode(btn));
+        if (winState == NULL)
+            throw winapiError("Failed to get mouse button state");
         return HIBYTE(winState) ? State::down : State::up;
     }
 
@@ -37,27 +40,29 @@ public:
     void push(Button btn) {
         inp[0].mi.dwFlags = BtnToFlags(btn, State::down);
         inp[0].mi.mouseData = BtnToData(btn);
-        SendInput(1, &inp[0], sizeof(*inp));
+        if (SendInput(1, &inp[0], sizeof(*inp)) != 1)
+            throw winapiError("Falied to correctly send mouse push");
     }
 
     void release(Button btn) {
         inp[1].mi.dwFlags = BtnToFlags(btn, State::up);
         inp[1].mi.mouseData = BtnToData(btn);
-        SendInput(1, &inp[1], sizeof(*inp));
+        if (SendInput(1, &inp[1], sizeof(*inp)) != 1)
+            throw winapiError("Falied to correctly send mouse release");
     }
 
     void press(Button btn, int delay) {
-        inp[0].mi.dwFlags = BtnToFlags(btn, State::down);
-        inp[1].mi.dwFlags = BtnToFlags(btn, State::up);
-        inp[0].mi.mouseData = inp[1].mi.mouseData = BtnToData(btn);
-
         if (delay > 0) {
-            SendInput(1, &inp[0], sizeof(*inp));
+            push(btn);
             Sleep(delay);
-            SendInput(1, &inp[1], sizeof(*inp));
+            release(btn);
         }
         else {
-            SendInput(2, inp, sizeof(*inp));
+            inp[0].mi.dwFlags = BtnToFlags(btn, State::down);
+            inp[1].mi.dwFlags = BtnToFlags(btn, State::up);
+            inp[0].mi.mouseData = inp[1].mi.mouseData = BtnToData(btn);
+            if (SendInput(2, inp, sizeof(*inp)) != 2)
+                throw winapiError("Falied to correctly send mouse press");
         }
     }
 
@@ -153,11 +158,11 @@ private:
         }
         else {
             switch (button) {
-            case Button::left:     return MOUSEEVENTF_LEFTDOWN;
-            case Button::middle:   return MOUSEEVENTF_MIDDLEDOWN;
-            case Button::right:    return MOUSEEVENTF_RIGHTDOWN;
-            case Button::backward:
-            case Button::forward:  return MOUSEEVENTF_XDOWN;
+                case Button::left:     return MOUSEEVENTF_LEFTDOWN;
+                case Button::middle:   return MOUSEEVENTF_MIDDLEDOWN;
+                case Button::right:    return MOUSEEVENTF_RIGHTDOWN;
+                case Button::backward:
+                case Button::forward:  return MOUSEEVENTF_XDOWN;
             }
         }
     }

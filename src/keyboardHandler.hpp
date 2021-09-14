@@ -5,6 +5,7 @@
 #include <iostream>
 #include "./hookSubscriber.hpp"
 #include "./commonEnums.hpp"
+#include "./exceptions.hpp"
 
 class Keyboard {
 public:
@@ -19,28 +20,33 @@ public:
     State operator[] (Key key) {
         //SHORT winState = GetKeyState(KeyToVkCode(key));
         SHORT winState = GetAsyncKeyState(KeyToVkCode(key));
+        if (winState == NULL)
+            throw winapiError("Failed to get key state");
         return HIBYTE(winState) ? State::down : State::up;
     }
 
     void push(Key key) {
         inp[0].ki.wVk = KeyToVkCode(key);
-        SendInput(1, &inp[0], sizeof(*inp));
+        if (SendInput(1, &inp[0], sizeof(*inp)) != 1)
+            throw winapiError("Failed to correctly send keyboard push");
     }
 
     void release(Key key) {
         inp[1].ki.wVk = KeyToVkCode(key);
-        SendInput(1, &inp[1], sizeof(*inp));
+        if (SendInput(1, &inp[1], sizeof(*inp)) != 1)
+            throw winapiError("Failed to correctly send keyboard release");
     }
 
     void press(Key key, int delay) {
-        inp[0].ki.wVk = inp[1].ki.wVk = KeyToVkCode(key);
         if (delay > 0) {
-            SendInput(1, &inp[0], sizeof(*inp));
+            push(key);
             Sleep(delay);
-            SendInput(1, &inp[1], sizeof(*inp));
+            release(key);
         }
         else {
-            SendInput(2, inp, sizeof(*inp));
+            inp[0].ki.wVk = inp[1].ki.wVk = KeyToVkCode(key);
+            if (SendInput(2, inp, sizeof(*inp)) != 2)
+                throw winapiError("Failed to correctly send keyboard press");
         }
     }
 

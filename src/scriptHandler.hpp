@@ -79,7 +79,6 @@ Script* ScriptHandler::createScript(ScriptHandler::Scripts script) {
         case Scripts::autogen: return new Autogen;
         case Scripts::wiggle: return new Wiggle;
         default:
-            spdlog::warn("Attempt to create unknown script type");
-            return nullptr;
+            throw std::invalid_argument("Attempt to create unknown script type");
     }
 }

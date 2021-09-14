@@ -3,6 +3,7 @@
 #include "./src/eventHandler.hpp"
 #include "./src/scriptHandler.hpp"
 #include "./src/soundHandler.hpp"
+#include "./src/exceptions.hpp"
 #include "spdlog/spdlog.h"
 #include <thread>
 #include <iostream>
@@ -31,22 +32,31 @@ void msgLoop() {
     spdlog::info("Message loop is completed");
 }
 
+void readConfig(EventHandler &event) {
+    try {
+        event.onKeyUp(Key::q, Events::exit);
+        event.onKeyUp(Key::z, ScriptStart(Scripts::autogen));
+        event.onKeyDown(Key::ctrl, Events::script_stop, Flags::notInjected);
+        event.onKeyDown(Key::shift, Events::script_stop, Flags::notInjected);
+
+        event.onMouseDown(Button::right, Events::script_action, Flags::scriptActive);
+        event.onMouseDown(Button::middle, Events::script_restart, Flags::scriptActive);
+        event.onMouseDown(Button::forward, ScriptStart(Scripts::wiggle));
+        event.onMouseDown(Button::backward, ScriptStart(Scripts::toxic));
+
+        event.onBlur(Events::app_blured);
+        event.onFocus(Events::app_focused);
+        event.watchAppFocus("C:\\Program Files (x86)\\Notepad++\\notepad++.exe");
+    }
+    catch (winapiError winerr) {
+        spdlog::error("On initialization winapi error occured\nCode: {}\nWhat: {}", winerr.code(), winerr.what());
+        exit(winerr.code());
+    }
+}
+
 void EventLoop() {
     EventHandler event;
-
-    event.onKeyUp(  Key::q,     Events::exit);
-    event.onKeyUp(  Key::z,     ScriptStart(Scripts::autogen));
-    event.onKeyDown(Key::ctrl,  Events::script_stop, Flags::notInjected);
-    event.onKeyDown(Key::shift, Events::script_stop, Flags::notInjected);
-
-    event.onMouseDown(Button::right,    Events::script_action,  Flags::scriptActive);
-    event.onMouseDown(Button::middle,   Events::script_restart, Flags::scriptActive);
-    event.onMouseDown(Button::forward,  ScriptStart(Scripts::wiggle));
-    event.onMouseDown(Button::backward, ScriptStart(Scripts::toxic));
-    
-    event.onBlur(Events::app_blured);
-    event.onFocus(Events::app_focused);
-    event.watchAppFocus("C:\\Program Files (x86)\\Notepad++\\notepad++.exe");
+    readConfig(event);
 
     SoundHandler sound;
     ScriptHandler script;
@@ -56,6 +66,7 @@ void EventLoop() {
     sound.play(Sounds::app_open);
 
     while (event != Events::exit) {
+try {
         switch (event) {
             case Events::app_focused:
                 spdlog::info("App focused");
@@ -109,14 +120,31 @@ void EventLoop() {
                 spdlog::warn("Unknown event: {}", event.getEventName());
         }
         event.raise();
+} catch (winapiError winerr) {
+    spdlog::error("In event loop winapi error occured\nCode: {}\nWhat: {}", winerr.code(), winerr.what());
+} catch (std::exception err) {
+    spdlog::error("In event loop something bad happened\nWhat: {}", err.what());
+}
     }
+
     sound.play(Sounds::app_close);
     spdlog::info("Closing...");
     exit(0);
 }
 
 int main(void) {
-    EventHandler::initHooks();
+    try {
+        EventHandler::initHooks();
+    }
+    catch (winapiError winerr) {
+        spdlog::error("Winapi error occurred on hook init\nCode: {}\nWhat: {}\n", winerr.code(), winerr.what());
+        return winerr.code();
+    }
+    catch (std::exception err) {
+        spdlog::error("Something bad happened on hook init\nWhat: {}", err.what());
+        return -1;
+    }
+
     auto eventThread = std::thread(EventLoop);
     msgLoop();
     eventThread.join();

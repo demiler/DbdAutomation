@@ -9,6 +9,7 @@
 #include <chrono>
 #include <functional>
 #include <iostream>
+#include <exception>
 
 using Key = Keyboard::Key;
 using Button = Mouse::Button;
@@ -89,8 +90,7 @@ private:
                         startTime = millis();
                         break;
                     default:
-                        spdlog::error("Unkown event in script loop");
-                        ;// throw Exeption(ExType::unknown_event, "Unkown event in script loop");
+                        throw std::invalid_argument("Unkown event in script loop");
                 }
                 resetPromise();
             }

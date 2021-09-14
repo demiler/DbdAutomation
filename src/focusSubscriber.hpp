@@ -13,7 +13,7 @@ class hookEvent_t {
 public:
     hookEvent_t() : hook(NULL) {}
     hookEvent_t(WINEVENTPROC cb) { init(cb); }
-    ~hookEvent_t() { UnhookWinEvent(hook); }
+    ~hookEvent_t() { if (hooked()) UnhookWinEvent(hook); }
     bool hooked() { return hook != NULL; }
     void operator=(hookEvent_t&& old) noexcept { std::swap(hook, old.hook); }
 

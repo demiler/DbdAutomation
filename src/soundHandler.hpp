@@ -10,14 +10,19 @@ class soundResource_t {
     HGLOBAL res;
 public:
     soundResource_t() : res(NULL) {}
-    ~soundResource_t() { FreeResource(res); }
+    ~soundResource_t() { if (assigned()) FreeResource(res); }
     bool assigned() { return res != NULL; }
     operator LPCSTR() { return reinterpret_cast<LPCSTR>(res); }
     
     void init(int SND_RES) {
         if (assigned()) return;
         HRSRC hResInfo = FindResource(NULL, MAKEINTRESOURCE(SND_RES), "WAVE");
+        if (hResInfo == NULL)
+            throw winapiError("Failed to find resource");
+
         res = LoadResource(NULL, hResInfo);
+        if (res == NULL)
+            throw winapiError("Falied to load resource");
     }
 };
 
