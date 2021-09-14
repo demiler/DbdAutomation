@@ -4,7 +4,6 @@
 //
 #define SND_BEEPIN                      4
 #define SND_BEEPOUT                     109
-#define IDR_WAVE3                       110
 #define SND_WARNING                     110
 
 // Next default values for new objects
