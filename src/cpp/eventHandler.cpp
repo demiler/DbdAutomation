@@ -123,13 +123,14 @@ void EventHandler::addTrigger(std::map<btnSearch_t, triggerList_t>& triggersMap,
     }
 }
 
-template <class btnSearch_t, class Button_t, class Data_t>
+template <DWORD INJECTED, class btnSearch_t, class Button_t, class Data_t>
 void EventHandler::handleFires(std::map<btnSearch_t, triggerList_t> triggerMap, Button_t btn, State state, Data_t data) {
     auto it = triggerMap.find(std::make_pair(btn, state));
     if (it != triggerMap.end()) {
         for (const auto& trigger : it->second) {
             Flags flags = trigger.second;
-            if ((flags & Flags::notInjected) && (data.flags & LLKHF_INJECTED)) continue;
+
+            if ((flags & Flags::notInjected) && (data.flags & INJECTED)) continue;
             //if ((flags & Flags::scriptActive) && isScriptRunning())      continue;
 
             EventHandler::Event a = trigger.first;
@@ -138,19 +139,20 @@ void EventHandler::handleFires(std::map<btnSearch_t, triggerList_t> triggerMap, 
     }
 }
 
-void EventHandler::mouseCallback(WPARAM action, LPARAM lParam) {
+bool EventHandler::mouseCallback(WPARAM action, LPARAM lParam) {
     Mouse::mouseEvent msev = Mouse::identifyEvent(action);
-    if (msev != Mouse::mouseEvent::button) return; //ignore all events except buttons press
+    if (msev != Mouse::mouseEvent::button) return false; //ignore all events except buttons press
 
     auto data = *reinterpret_cast<MSLLHOOKSTRUCT*>(lParam);
 
     //if (data.flags == LLMHF_INJECTED) return;
 
     auto buttonPair = Mouse::identifyButton(action, data);
-    handleFires(msTriggers, buttonPair.first, buttonPair.second, data);
+    handleFires<LLMHF_INJECTED>(msTriggers, buttonPair.first, buttonPair.second, data);
+    return false;
 }
 
-void EventHandler::keyboardCallback(WPARAM action, LPARAM lp) {
+bool EventHandler::keyboardCallback(WPARAM action, LPARAM lp) {
     auto data = *reinterpret_cast<KBDLLHOOKSTRUCT*>(lp);
 
     Key key = Key(data.vkCode);
@@ -158,7 +160,8 @@ void EventHandler::keyboardCallback(WPARAM action, LPARAM lp) {
         ? State::down
         : State::up;
 
-    handleFires(kbTriggers, key, state, data);
+    handleFires<LLKHF_INJECTED>(kbTriggers, key, state, data);
+    return false;
 }
 
 void EventHandler::focusCallback(const char* path) {

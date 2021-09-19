@@ -23,7 +23,7 @@ public:
 template <int HOOK_ID>
 class HookSubscriber {
 public:
-    typedef std::function<void(WPARAM, LPARAM)> callback_t;
+    typedef std::function<bool(WPARAM, LPARAM)> callback_t;
     typedef std::list<callback_t>::iterator subID_t;
 
     static subID_t subscribe(callback_t sub) {
@@ -31,7 +31,7 @@ public:
     }
 
     template <class T>
-    static subID_t subscribe(void(T::*foo)(WPARAM, LPARAM), T* inst) {
+    static subID_t subscribe(bool(T::*foo)(WPARAM, LPARAM), T* inst) {
         using namespace std::placeholders;
         auto callback = std::bind(foo, inst, _1, _2);
         return subscribe(callback);
@@ -52,8 +52,12 @@ private:
 
     static LRESULT CALLBACK SubInvoker(int nCode, WPARAM wp, LPARAM lp) {
         if (nCode >= 0) {
-            for (const auto& sub : subs)
-                sub(wp, lp);
+            bool blockEvent = false;
+            for (const auto& sub : subs) {
+                if (sub(wp, lp)) blockEvent = true;
+            }
+            //return any value > 0 to block input
+            if (blockEvent) return 1;
         }
         return CallNextHookEx(NULL, nCode, wp, lp);
     }
@@ -63,4 +67,4 @@ template <int HOOK_ID>
 hook_t HookSubscriber<HOOK_ID>::hook;
 
 template <int HOOK_ID>
-std::list<std::function<void(WPARAM, LPARAM)>> HookSubscriber<HOOK_ID>::subs;
+std::list<std::function<bool(WPARAM, LPARAM)>> HookSubscriber<HOOK_ID>::subs;

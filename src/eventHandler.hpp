@@ -63,11 +63,11 @@ private:
     template <class btnSearch_t, class Button_t>
     void addTrigger(std::map<btnSearch_t, triggerList_t>& triggerMap, State state, Button_t btn, Event event, Flags flags);
 
-    template <class btnSearch_t, class Button_t, class Data_t>
+    template <DWORD INJECTED, class btnSearch_t, class Button_t, class Data_t>
     void handleFires(std::map<btnSearch_t, triggerList_t> triggerMap, Button_t btn, State state, Data_t data);
 
-    void mouseCallback(WPARAM action, LPARAM lParam);
-    void keyboardCallback(WPARAM action, LPARAM lp);
+    bool mouseCallback(WPARAM action, LPARAM lParam);
+    bool keyboardCallback(WPARAM action, LPARAM lp);
     void focusCallback(const char*);
 
     EventHandler(const EventHandler&) = delete;

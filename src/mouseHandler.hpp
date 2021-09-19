@@ -2,7 +2,7 @@
 #include <Windows.h>
 #include <list>
 #include <map>
-#include <iostream>
+#include <spdlog/spdlog.h>
 #include "./hookSubscriber.hpp"
 #include "./commonEnums.hpp"
 #include "./exceptions.hpp"
@@ -19,6 +19,7 @@ public:
 
         for (size_t i = 0; i < MOUSE_BUTTONS_COUNT; ++i) {
             buttonMap[i] = this->getWinState(Button(i));
+            blockedBtns[i] = false;
         }
     }
 
@@ -35,6 +36,14 @@ public:
 
     State operator[] (Button btn) {
         return buttonMap[static_cast<int>(btn)];
+    }
+
+    void unlock(Button btn) {
+        blockedBtns[static_cast<int>(btn)] = false;
+    }
+
+    void lock(Button btn) {
+        blockedBtns[static_cast<int>(btn)] = true;
     }
 
     void push(Button btn) {
@@ -123,15 +132,19 @@ public:
     }
 
 private:
-    void updateButtons(WPARAM wp, LPARAM lp) {
+    bool updateButtons(WPARAM wp, LPARAM lp) {
         auto data = *reinterpret_cast<MSLLHOOKSTRUCT*>(lp);
 
         if (data.flags != LLMHF_INJECTED) {
             auto btnPair = Mouse::identifyButton(wp, data);
             if (btnPair.first != Button::unknown) {
+                bool block = blockedBtns[static_cast<int>(btnPair.first)];
+                if (block) return true;
+
                 buttonMap[static_cast<size_t>(btnPair.first)] = btnPair.second;
             }
         }
+        return false;
     }
 
     WORD BtnToVkCode(Button button) {
@@ -180,4 +193,5 @@ private:
     INPUT inp[2];
     MsHookSub::subID_t subID;
     State buttonMap[MOUSE_BUTTONS_COUNT];
+    bool blockedBtns[MOUSE_BUTTONS_COUNT];
 };

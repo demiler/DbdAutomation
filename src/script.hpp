@@ -126,6 +126,7 @@ public:
 };
 
 class Autogen : public Script {
+    Button btn;
 public:
     Autogen() { deathTime = 60s; }
 
@@ -139,8 +140,9 @@ public:
     }
 
     void beforeLoop() {
-        ms.push(Button::left);
-        //ms.lock(Button::left); //lock - dont send button action to the system
+        btn = (ms[Button::right] == State::down) ? Button::right : Button::left;
+        ms.push(btn);
+        ms.lock(btn); //lock - dont send button action to the system
     }
 
     void loopAction() {
@@ -148,8 +150,8 @@ public:
     }
     
     void afterLoop() {
-        ms.release(Button::left);
-        //ms.unlock(Button::left);
+        ms.unlock(btn);
+        ms.release(btn);
     }
 
     void loop() { Sleep(10); }

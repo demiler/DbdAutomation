@@ -48,21 +48,21 @@ public:
     void beep(const std::list<std::pair<int, millis_t>>& beeps) {
         beepAsync = std::async(std::launch::async, [&beeps]() {
             for (const auto& snd : beeps)
-                Beep(snd.first, snd.second.count());
+                Beep(snd.first, static_cast<DWORD>(snd.second.count()));
         });
     }
 
-    void beep(const std::list<std::pair<int, millis_t>>&& beeps) {
+    void beep(std::list<std::pair<int, millis_t>>&& beeps) {
         beepAsync = std::async(std::launch::async, [beeps = std::move(beeps)]() {
             for (const auto& snd : beeps)
-                Beep(snd.first, snd.second.count());
+                Beep(snd.first, static_cast<DWORD>(snd.second.count()));
         });
     }
 
     void beep(int freq, millis_t duration, int count = 1) {
         beepAsync = std::async(std::launch::async, [](int freq, millis_t duration, int count) {
             while (count > 0) {
-                Beep(freq, duration.count());
+                Beep(freq, static_cast<DWORD>(duration.count()));
                 count--;
             }
         }, freq, duration, count);

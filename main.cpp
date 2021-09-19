@@ -39,7 +39,7 @@ void readConfig(EventHandler &event) {
         event.onKeyDown(Key::ctrl, Events::script_stop, Flags::notInjected);
         event.onKeyDown(Key::shift, Events::script_stop, Flags::notInjected);
 
-        event.onMouseDown(Button::right, Events::script_action, Flags::scriptActive);
+        event.onMouseDown(Button::left, Events::script_action, Flags::notInjected);
         event.onMouseDown(Button::middle, Events::script_restart, Flags::scriptActive);
         event.onMouseDown(Button::forward, ScriptStart(Scripts::wiggle));
         event.onMouseDown(Button::backward, ScriptStart(Scripts::toxic));
