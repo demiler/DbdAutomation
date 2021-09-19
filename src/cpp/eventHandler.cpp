@@ -1,5 +1,6 @@
 #include "../eventHandler.hpp"
 #include <cstring>
+#include <spdlog/spdlog.h>
 
 /*  Structure implementation */
 EventHandler::Event::
@@ -35,8 +36,13 @@ void EventHandler::raise() {
 
 void EventHandler::fire(const Event& event) {
     if (raised && !fired) {
-        sync_prom.set_value();
-        fired = true;
+        try {
+            sync_prom.set_value();
+            fired = true;
+        }
+        catch (...) {
+            spdlog::error("Something bad happen while setting event in EventHandler::fire");
+        }
     }
     current = event;
 }

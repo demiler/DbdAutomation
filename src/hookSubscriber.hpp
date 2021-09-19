@@ -3,12 +3,18 @@
 #include <functional>
 #include <list>
 #include <utility>
+#include <spdlog/spdlog.h>
 
 class hook_t {
     HHOOK hook;
 public:
     hook_t() : hook(NULL) {}
-    hook_t(int HOOK_ID, HOOKPROC cb) : hook(SetWindowsHookExA(HOOK_ID, cb, NULL, 0)) {}
+    hook_t(int HOOK_ID, HOOKPROC cb) {
+        hook = SetWindowsHookExA(HOOK_ID, cb, NULL, 0);
+        if (hook == NULL) {
+            spdlog::error("Unable to set hook id: {}", HOOK_ID);
+        }
+    }
     ~hook_t() { if (hooked()) UnhookWindowsHookEx(hook); }
     bool hooked() { return hook != NULL; }
     void operator=(hook_t&& old) noexcept { std::swap(hook, old.hook); }

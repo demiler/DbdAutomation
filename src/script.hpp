@@ -25,15 +25,18 @@ public:
     }
 
     void restart() {
-        loopPromise.set_value(Events::script_restart);
+        //loopPromise.set_value(Events::script_restart);
+        setPromiseValue(Events::script_restart);
     }
 
     void stop() {
-        loopPromise.set_value(Events::script_stop);
+        //loopPromise.set_value(Events::script_stop);
+        setPromiseValue(Events::script_stop);
     }
 
     void action() {
-        loopPromise.set_value(Events::script_action);
+        //loopPromise.set_value(Events::script_action);
+        setPromiseValue(Events::script_action);
     }
 
     void setEndCallback(std::function<void(void)> cb) {
@@ -56,6 +59,15 @@ protected:
     virtual bool isTimeout() { return millis() - startTime >= deathTime; }
 
 private:
+    void setPromiseValue(Events event) {
+        try {
+            loopPromise.set_value(event);
+        }
+        catch (...) {
+            spdlog::error("Something bad happen of set_value in script. Event: {}", static_cast<int>(event));
+        }
+    }
+
     std::thread loopThread;
     std::promise<Events> loopPromise;
     std::future<Events> loopFuture;

@@ -7,6 +7,7 @@
 #include <iostream>
 #include "./exceptions.hpp"
 #include "./utitls.hpp"
+#include <spdlog/spdlog.h>
 
 class hookEvent_t {
     HWINEVENTHOOK hook;
@@ -23,8 +24,10 @@ public:
             NULL, cb, 0, 0,
             WINEVENT_OUTOFCONTEXT
         );
-        if (hook == NULL)
+        if (hook == NULL) {
+            spdlog::error("Unable to set focus event hook");
             throw winapiError(GetLastError(), "Unable to set focus event hook");
+        }
     }
 };
 
@@ -58,8 +61,10 @@ public:
         static char processPath[MAX_PATH];
         
         HWND curWindow = GetForegroundWindow();
-        if (curWindow == NULL)
+        if (curWindow == NULL) {
+            spdlog::error("Unable to set focus event hook");
             throw winapiError("Unable to get foreground window");
+        }
 
         getPathByHWND(curWindow, processPath);
 

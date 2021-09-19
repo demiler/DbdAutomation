@@ -1,5 +1,6 @@
 #include "../utitls.hpp"
 #include "../exceptions.hpp"
+#include <spdlog/spdlog.h>
 #include <psapi.h>
 
 /* can't separte template declaration and implementation
@@ -23,11 +24,14 @@ void getPathByHWND(HWND hwnd, char processPath[MAX_PATH]) {
     HANDLE processHandle = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, pid);
 
     if (processHandle != NULL) {
-        if (!GetModuleFileNameEx(processHandle, NULL, processPath, MAX_PATH))
+        if (!GetModuleFileNameEx(processHandle, NULL, processPath, MAX_PATH)) {
+            spdlog::error("Unable to get process path");
             throw winapiError("Unable to get process path");
+        }
         CloseHandle(processHandle);
     }
     else {
+        spdlog::error("Unable to open process");
         throw winapiError("Unable to open process");
     }
 }
