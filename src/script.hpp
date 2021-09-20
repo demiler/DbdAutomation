@@ -2,7 +2,7 @@
 #include "./keyboardHandler.hpp"
 #include "./mouseHandler.hpp"
 #include "./eventHandler.hpp"
-#include "./utitls.hpp"
+#include "./utils.hpp"
 #include <spdlog/spdlog.h>
 #include <thread>
 #include <future>
@@ -45,6 +45,7 @@ public:
 
     virtual bool hasAction() { return false; }
     virtual bool playSounds() { return true; }
+    virtual bool changeIndicator() { return true; }
 
 protected:
     Mouse ms;

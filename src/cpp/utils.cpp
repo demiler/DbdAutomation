@@ -1,4 +1,4 @@
-#include "../utitls.hpp"
+#include "../utils.hpp"
 #include "../exceptions.hpp"
 #include <spdlog/spdlog.h>
 #include <psapi.h>

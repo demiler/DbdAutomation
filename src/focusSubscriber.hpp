@@ -6,7 +6,7 @@
 #include <list>
 #include <iostream>
 #include "./exceptions.hpp"
-#include "./utitls.hpp"
+#include "./utils.hpp"
 #include <spdlog/spdlog.h>
 
 class hookEvent_t {

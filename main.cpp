@@ -4,6 +4,7 @@
 #include "./src/scriptHandler.hpp"
 #include "./src/soundHandler.hpp"
 #include "./src/exceptions.hpp"
+#include "./src/overlay.hpp"
 #include "spdlog/spdlog.h"
 #include <thread>
 #include <iostream>
@@ -27,8 +28,11 @@ auto sts(Scripts script) {
 
 void msgLoop() {
     spdlog::info("Started message loop");
-    MSG logit;
-    GetMessage(&logit, NULL, 0, 0);
+    MSG msg;
+    while (GetMessage(&msg, NULL, 0, 0)) {
+        TranslateMessage(&msg);
+        DispatchMessage(&msg);
+    }
     spdlog::info("Message loop is completed");
 }
 
@@ -39,7 +43,7 @@ void readConfig(EventHandler &event) {
         event.onKeyDown(Key::ctrl, Events::script_stop, Flags::notInjected);
         event.onKeyDown(Key::shift, Events::script_stop, Flags::notInjected);
 
-        event.onMouseDown(Button::left, Events::script_action, Flags::notInjected);
+        event.onMouseDown(Button::right, Events::script_action, Flags::notInjected);
         event.onMouseDown(Button::middle, Events::script_restart, Flags::scriptActive);
         event.onMouseDown(Button::forward, ScriptStart(Scripts::wiggle));
         event.onMouseDown(Button::backward, ScriptStart(Scripts::toxic));
@@ -71,6 +75,7 @@ try {
             case Events::app_focused:
                 spdlog::info("App focused");
                 focused = true;
+                Overlay::show();
                 sound.play(Sounds::app_focused);
                 break;
 
@@ -78,6 +83,7 @@ try {
                 spdlog::info("App blured");
                 script.stop();
                 focused = false;
+                Overlay::hide();
                 sound.play(Sounds::app_blured);
                 break;
 
@@ -135,6 +141,7 @@ try {
 int main(void) {
     try {
         EventHandler::initHooks();
+        Overlay::init();
     }
     catch (winapiError winerr) {
         spdlog::error("Winapi error occurred on hook init\nCode: {}\nWhat: {}\n", winerr.code(), winerr.what());

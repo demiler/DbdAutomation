@@ -2,6 +2,7 @@
 #include "./eventHandler.hpp"
 #include "./soundHandler.hpp"
 #include "./script.hpp"
+#include "./overlay.hpp"
 #include <spdlog/spdlog.h>
 #include <functional>
 
@@ -28,6 +29,7 @@ public:
         script->setEndCallback(callback);
         script->start();
         if (script->playSounds()) sh.play(SoundHandler::Sounds::script_started);
+        if (script->changeIndicator()) Overlay::setIndicatorColor(0x7850da);
     }
 
     void stop() {
@@ -60,6 +62,7 @@ private:
 
     void scriptEnded() {
         if (script->playSounds()) sh.play(SoundHandler::Sounds::script_ended);
+        if (script->changeIndicator()) Overlay::setIndicatorColor(25, 100, 50);
         delete script;
         script = nullptr;
         spdlog::info("Script ended");

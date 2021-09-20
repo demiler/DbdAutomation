@@ -4,7 +4,7 @@
 #include <future>
 #include <spdlog/spdlog.h>
 #include "../resource.h"
-#include "utitls.hpp"
+#include "./utils.hpp"
 using namespace std::chrono_literals;
 
 class soundResource_t {
