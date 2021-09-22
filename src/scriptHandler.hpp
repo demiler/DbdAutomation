@@ -30,6 +30,7 @@ public:
         script->start();
         if (script->playSounds()) sh.play(SoundHandler::Sounds::script_started);
         if (script->changeIndicator()) Overlay::setIndicatorColor(0x7850da);
+        if (script->hasImage()) Overlay::setImage(script->getImage());
     }
 
     void stop() {
@@ -63,6 +64,7 @@ private:
     void scriptEnded() {
         if (script->playSounds()) sh.play(SoundHandler::Sounds::script_ended);
         if (script->changeIndicator()) Overlay::setIndicatorColor(25, 100, 50);
+        if (script->hasImage()) Overlay::clearImage();
         delete script;
         script = nullptr;
         spdlog::info("Script ended");

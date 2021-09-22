@@ -3,6 +3,10 @@
 #include "./mouseHandler.hpp"
 #include "./eventHandler.hpp"
 #include "./utils.hpp"
+#include "./bitmap.hpp"
+#include "./soundHandler.hpp"
+#include "./overlay.hpp"
+#include "../resource.h"
 #include <spdlog/spdlog.h>
 #include <thread>
 #include <future>
@@ -18,6 +22,8 @@ using namespace std::chrono_literals;
 
 class Script {
 public:
+    Script() : deathTime(0), warningTime(0) {}
+
     void start() {
         resetPromise();
         loopThread = std::thread(&Script::looping, this);
@@ -46,18 +52,21 @@ public:
     virtual bool hasAction() { return false; }
     virtual bool playSounds() { return true; }
     virtual bool changeIndicator() { return true; }
+    virtual bool hasImage() { return false; }
+    virtual Bitmap getImage() { return Bitmap(); }
 
 protected:
     Mouse ms;
     Keyboard kb;
-    millis_t startTime, deathTime;
+    millis_t startTime, deathTime, warningTime, runTime;
 
     virtual void beforeLoop() {};
     virtual void afterLoop() {};
     virtual void loopAction() {};
+    virtual void warning() { Overlay::blink(0x21ffaa, 200ms, 3); }
     virtual void loop() = 0;
     virtual bool startLoop() { return true; }
-    virtual bool isTimeout() { return millis() - startTime >= deathTime; }
+    virtual bool isTimeout() { return runTime >= deathTime; }
 
 private:
     void setPromiseValue(Events event) {
@@ -86,7 +95,9 @@ private:
         }
 
         startTime = millis();
+        runTime = 0ms;
         bool running = true;
+        bool warned = (warningTime == 0ms); //ignore warning if warningTime is not set
 
         beforeLoop();
         while (running) {
@@ -102,11 +113,18 @@ private:
                         break;
                     case Events::script_restart:
                         startTime = millis();
+                        warned = (warningTime == 0ms);
                         break;
                     default:
                         throw std::invalid_argument("Unkown event in script loop");
                 }
                 resetPromise();
+            }
+
+            runTime = millis() - startTime;
+            if (!warned && runTime >= warningTime) {
+                warned = true;
+                warning();
             }
 
             if (isTimeout())
@@ -118,18 +136,24 @@ private:
 };
 
 class Wiggle : public Script {
+    static Bitmap image;
 public:
-    Wiggle() { deathTime = 30s; }
+    Wiggle() { deathTime = 30s; warningTime = 25s; }
     void loop() {
         kb.press(Key::a, 30);
         kb.press(Key::d, 30);
     }
+
+    bool hasImage() { return true; }
+    Bitmap getImage() { return Wiggle::image; }
 };
+Bitmap Wiggle::image(IMG_WIGGLE);
 
 class Autogen : public Script {
+    static Bitmap image;
     Button btn;
 public:
-    Autogen() { deathTime = 60s; }
+    Autogen() { deathTime = 60s; warningTime = 25s; }
 
     bool cancelButtonsPressed() {
         return kb[Key::ctrl] == State::down || kb[Key::shift] == State::down;
@@ -158,9 +182,13 @@ public:
     void loop() { Sleep(10); }
 
     bool hasAction() override { return true; }
+    bool hasImage() override { return true; }
+    Bitmap getImage() override { return Autogen::image; }
 };
+Bitmap Autogen::image(IMG_AUTOGEN);
 
 class BecomeToxic : public Script {
+    static Bitmap image;
     enum class Type { tbag, click };
     Type type;
 public:
@@ -200,4 +228,8 @@ public:
     bool isTimeout() {
         return Script::isTimeout() && ms[Button::left] != State::down;
     }
+
+    bool hasImage() override { return true; }
+    Bitmap getImage() override { return BecomeToxic::image; }
 };
+Bitmap BecomeToxic::image(IMG_TOXIC);

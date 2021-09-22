@@ -1,8 +1,13 @@
 #pragma once
 #include <Windows.h>
 #include <spdlog/spdlog.h>
+#include <future>
 #include "exceptions.hpp"
+#include "bitmap.hpp"
 #include "utils.hpp"
+#include "../resource.h"
+
+HBITMAP hBitmap;
 
 class Overlay {
 public:
@@ -11,9 +16,10 @@ public:
         Overlay::initialized = true;
         
         try {
+            Overlay::asyncBlink = std::async(std::launch::async, [](){});
             Overlay::registerClass();
             Overlay::createWindow();
-            
+
             SetLayeredWindowAttributes(Overlay::hwnd, 0x000000, Overlay::alpha, LWA_COLORKEY | LWA_ALPHA);
             ShowWindow(Overlay::hwnd, SW_HIDE);
             UpdateWindow(Overlay::hwnd);
@@ -65,6 +71,34 @@ public:
         MoveWindow(Overlay::hwnd, x, y, Overlay::width, Overlay::height, FALSE);
     }
 
+    static void setImage(const Bitmap& bm) {
+        Overlay::bitmap = bm;
+        InvalidateRect(Overlay::hwnd, NULL, NULL);
+    }
+
+    static void clearImage() {
+        Overlay::bitmap = NULL;
+        InvalidateRect(Overlay::hwnd, NULL, NULL);
+    }
+
+    static bool blink(COLORREF color, millis_t delay, unsigned times) {
+        if (!isFutureReady(Overlay::asyncBlink)) return false;
+
+        asyncBlink = std::async(std::launch::async,
+            [](COLORREF color, millis_t delay, unsigned times) {
+                COLORREF oldColor = circleColor;
+                while (times > 0) {
+                    Overlay::setIndicatorColor(color);
+                    Sleep(delay.count());
+                    Overlay::setIndicatorColor(oldColor);
+                    Sleep(delay.count());
+                    times--;
+                }
+            },
+            color, delay, times);
+        return true;
+    }
+
     static void PrintHello() {
         HDC dc = GetDC(Overlay::hwnd);
         RECT rc;
@@ -111,19 +145,6 @@ private:
         }
     }
 
-    /*
-    static void drawImage() {
-        hdcMem = CreateCompatibleDC(hdc);
-        oldBitmap = SelectObject(hdcMem, hBitmap);
-
-        GetObject(hBitmap, sizeof(bitmap), &bitmap);
-        BitBlt(hdc, 0, 0, bitmap.bmWidth, bitmap.bmHeight, hdcMem, 0, 0, SRCCOPY);
-
-        SelectObject(hdcMem, oldBitmap);
-        DeleteDC(hdcMem);
-    }
-    */
-
     static LRESULT CALLBACK windowHandler(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
         switch (msg) {
             case WM_MOVING: {//restrict overlay from going beyond screen
@@ -147,8 +168,6 @@ private:
                 return TRUE;
 
             case WM_NCCREATE:
-                //hBitmap = (HBITMAP)LoadImage(GetModuleHandle(0), MAKEINTRESOURCE(IDB_BITMAP2), IMAGE_BITMAP, 200, 200, LR_LOADTRANSPARENT);
-                //if (hBitmap == NULL) std::cout << "Fail: " << GetLastError() << std::endl;
                 return TRUE;
 
             case WM_PAINT: {
@@ -159,15 +178,17 @@ private:
                 hdc = BeginPaint(hwnd, &ps);
                 
                 GetClientRect(hwnd, &rc);
-                SetDCBrushColor(hdc, RGB(0,0,0));
+                SetDCBrushColor(hdc, RGB(0, 0, 0));
                 FillRect(hdc, &rc, (HBRUSH)GetStockObject(DC_BRUSH));
+
+                if (Overlay::bitmap.isSet()) Overlay::bitmap.draw(hdc);
 
                 SelectObject(hdc, GetStockObject(DC_PEN));
                 SelectObject(hdc, GetStockObject(DC_BRUSH));
 
                 SetDCBrushColor(hdc, Overlay::circleColor);
                 SetDCPenColor(hdc, Overlay::circleColor);
-                Ellipse(hdc, 0, 0, 40, 40);
+                Ellipse(hdc, 0, 0, Overlay::circleSize, Overlay::circleSize);
                 
                 EndPaint(hwnd, &ps);
                 return 0;
@@ -184,14 +205,20 @@ private:
     static HWND hwnd;
     static bool initialized;
     static COLORREF circleColor;
+    static const int circleSize;
+    static Bitmap bitmap;
+    static std::future<void> asyncBlink;
 };
 
 const char Overlay::className[] = "DBDOverlay";
 HCURSOR Overlay::cursor   = LoadCursor(NULL, IDC_SIZEALL);
-const int Overlay::width  = 40;
-const int Overlay::height = 40;
+const int Overlay::width  = 70;
+const int Overlay::height = 70;
 int Overlay::alpha		  = 100;
 HBITMAP Overlay::imgs     = NULL;
 HWND Overlay::hwnd 		  = NULL;
 bool Overlay::initialized = false;
+const int Overlay::circleSize = 20;
 COLORREF Overlay::circleColor = RGB(25, 100, 50);
+Bitmap Overlay::bitmap;
+std::future<void> Overlay::asyncBlink;
