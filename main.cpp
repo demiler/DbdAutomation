@@ -1,3 +1,4 @@
+#include "./src/scripts/ScriptsRegister.hpp"
 #include "./src/keyboardHandler.hpp"
 #include "./src/mouseHandler.hpp"
 #include "./src/eventHandler.hpp"

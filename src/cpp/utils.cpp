@@ -32,6 +32,6 @@ void getPathByHWND(HWND hwnd, char processPath[MAX_PATH]) {
     }
     else {
         spdlog::error("Unable to open process");
-        throw winapiError("Unable to open process");
+        //throw winapiError("Unable to open process");
     }
 }

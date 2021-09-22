@@ -2,6 +2,7 @@
 #include <chrono>
 #include <future>
 #include <Windows.h>
+#define M_PI 3.141592653589793
 
 typedef std::chrono::milliseconds millis_t;
 
@@ -18,8 +19,11 @@ T inRange(T value, U min, U max) {
 	return value;
 }
 
-millis_t millis();
+constexpr double degToRad(double deg) {
+	return (M_PI / 180.0) * deg;
+}
 
+millis_t millis();
 
 int random(int from, int to);
 

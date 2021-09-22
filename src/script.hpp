@@ -3,10 +3,8 @@
 #include "./mouseHandler.hpp"
 #include "./eventHandler.hpp"
 #include "./utils.hpp"
-#include "./bitmap.hpp"
 #include "./soundHandler.hpp"
 #include "./overlay.hpp"
-#include "../resource.h"
 #include <spdlog/spdlog.h>
 #include <thread>
 #include <future>
@@ -69,6 +67,8 @@ protected:
     virtual bool isTimeout() { return runTime >= deathTime; }
 
 private:
+    inline bool hasWarning() { return warningTime == 0ms; }
+
     void setPromiseValue(Events event) {
         try {
             loopPromise.set_value(event);
@@ -97,7 +97,7 @@ private:
         startTime = millis();
         runTime = 0ms;
         bool running = true;
-        bool warned = (warningTime == 0ms); //ignore warning if warningTime is not set
+        bool warned = hasWarning(); //ignore warning if warningTime is not set
 
         beforeLoop();
         while (running) {
@@ -113,7 +113,7 @@ private:
                         break;
                     case Events::script_restart:
                         startTime = millis();
-                        warned = (warningTime == 0ms);
+                        warned = hasWarning();
                         break;
                     default:
                         throw std::invalid_argument("Unkown event in script loop");
@@ -134,102 +134,3 @@ private:
         endCallback();
     }
 };
-
-class Wiggle : public Script {
-    static Bitmap image;
-public:
-    Wiggle() { deathTime = 30s; warningTime = 25s; }
-    void loop() {
-        kb.press(Key::a, 30);
-        kb.press(Key::d, 30);
-    }
-
-    bool hasImage() { return true; }
-    Bitmap getImage() { return Wiggle::image; }
-};
-Bitmap Wiggle::image(IMG_WIGGLE);
-
-class Autogen : public Script {
-    static Bitmap image;
-    Button btn;
-public:
-    Autogen() { deathTime = 60s; warningTime = 25s; }
-
-    bool cancelButtonsPressed() {
-        return kb[Key::ctrl] == State::down || kb[Key::shift] == State::down;
-    }
-
-    bool startLoop() {
-        if (cancelButtonsPressed()) Sleep(500);
-        return !cancelButtonsPressed();
-    }
-
-    void beforeLoop() {
-        btn = (ms[Button::right] == State::down) ? Button::right : Button::left;
-        ms.push(btn);
-        ms.lock(btn); //lock - dont send button action to the system
-    }
-
-    void loopAction() {
-        kb.press(Key::space, 30);
-    }
-    
-    void afterLoop() {
-        ms.unlock(btn);
-        ms.release(btn);
-    }
-
-    void loop() { Sleep(10); }
-
-    bool hasAction() override { return true; }
-    bool hasImage() override { return true; }
-    Bitmap getImage() override { return Autogen::image; }
-};
-Bitmap Autogen::image(IMG_AUTOGEN);
-
-class BecomeToxic : public Script {
-    static Bitmap image;
-    enum class Type { tbag, click };
-    Type type;
-public:
-    BecomeToxic() {
-        deathTime = 500ms;
-        type = Type::tbag;
-    }
-
-    bool playSounds() override { return false; }
-
-    bool startLoop() {
-        return kb[Key::ctrl] == State::up && kb[Key::shift] == State::up;
-    }
-
-    void beforeLoop() {
-        type = (ms[Button::left] == State::down) ? Type::click : Type::tbag;
-        if (type == Type::tbag) {
-            kb.press(Key::ctrl, 200);
-        }
-    }
-
-    void loop() {
-        if (type == Type::tbag) {
-            kb.push(Key::ctrl);
-            Sleep(50);
-            kb.release(Key::ctrl);
-            Sleep(50);
-        }
-        else {
-            ms.push(Button::right);
-            Sleep(10);
-            ms.release(Button::right);
-            Sleep(random(10, 40));
-        }
-    }
-
-    bool isTimeout() {
-        return Script::isTimeout() && ms[Button::left] != State::down;
-    }
-
-    bool hasImage() override { return true; }
-    Bitmap getImage() override { return BecomeToxic::image; }
-};
-Bitmap BecomeToxic::image(IMG_TOXIC);

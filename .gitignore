@@ -2,5 +2,4 @@ Debug
 x64
 .vs
 .vscode
-DbdAutomate.vcxproj*
 test.cpp
